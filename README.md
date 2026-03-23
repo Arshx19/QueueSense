@@ -25,6 +25,3 @@ QueueSense/
 
 ## Setup Instructions
 Coming soon.
-
-## Mentor
-Mr. Samarth Vohra
