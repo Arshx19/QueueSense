@@ -11,8 +11,8 @@ Smart Queue Management System with ML-powered wait time prediction.
 - Arsh Jain - FA-2415000332
 - Shikhar Srivastav - FA-241500
 - Satyam Singh - FA-241500
-- Paritosh Mishra - FA-241500
-- Shekhar - FA-241500
+- Paritosh Mishra - FA-2415001090
+- Shekhar - FA-2415001474
 
 ## Project Structure
 ```
