@@ -52,3 +52,9 @@ __pycache__/
 # ======================
 coverage/
 .cache/
+
+
+.vscode/
+
+
+venv/
