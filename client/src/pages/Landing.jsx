@@ -1,25 +1,46 @@
 import { useState } from "react";
 import queueImage from "../assets/line.png";
+import { registerUser } from "../services/api";
 
 function Landing() {
   const [isLogin, setIsLogin] = useState(true);
 
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: ""
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    console.log("CLICKED", form);
+
+    try {
+      const res = await registerUser(form);
+      console.log("SUCCESS:", res.data);
+      alert("Registered successfully");
+    } catch (err) {
+      console.log("ERROR:", err.response?.data || err.message);
+    }
+  };
+
   return (
     <div style={main}>
-
-      {/* Navbar */}
       <div style={nav}>
         <h2 style={{ color: "#6c63ff" }}>QueueSense</h2>
         <div>
-          <button style={navBtn} onClick={() => setIsLogin(true)}>Sign In</button>
-          <button style={{ ...navBtn, marginLeft: "10px" }} onClick={() => setIsLogin(false)}>Sign Up</button>
+          <button style={navBtn} onClick={() => setIsLogin(true)}>
+            Sign In
+          </button>
+          <button
+            style={{ ...navBtn, marginLeft: "10px" }}
+            onClick={() => setIsLogin(false)}
+          >
+            Sign Up
+          </button>
         </div>
       </div>
-
-      {/* Main Section */}
       <div style={container}>
-
-        {/* LEFT SIDE */}
         <div style={left}>
           <h1 style={title}>You're now in a virtual queue</h1>
           <p style={subtitle}>
@@ -27,27 +48,61 @@ function Landing() {
           </p>
           <img
             src={queueImage}
-            alt="queue illustration"
+            alt="queue"
             style={{
-                width: "400px",
-                marginTop: "30px",
-                mixBlendMode: "multiply"
+              width: "400px",
+              marginTop: "30px",
+              mixBlendMode: "multiply"
             }}
-/>
+          />
         </div>
-
-        {/* RIGHT SIDE */}
-        <div style={card}>
+        <form style={card} onSubmit={handleSubmit}>
           <h2>{isLogin ? "Welcome" : "Create Account"}</h2>
+          {!isLogin && (
+            <input
+              style={input}
+              placeholder="Full Name"
+              onChange={(e) =>
+                setForm({ ...form, name: e.target.value })
+              }
+            />
+          )}
 
-          {!isLogin && <input style={input} placeholder="Full Name" />}
+          <input
+            style={input}
+            placeholder="Email Address"
+            onChange={(e) =>
+              setForm({ ...form, email: e.target.value })
+            }
+          />
 
-          <input style={input} placeholder="Email Address" />
-          <input style={input} type="password" placeholder="Password" />
-
-          <button style={mainBtn}>
-            {isLogin ? "Login" : "Register"}
-          </button>
+          <input
+            style={input}
+            type="password"
+            placeholder="Password"
+            onChange={(e) =>
+              setForm({ ...form, password: e.target.value })
+            }
+          />
+          <button
+              type="button"
+              onClick={handleSubmit}
+          style={{
+              padding: "12px",
+              background: "#6c63ff",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+              transition: "0.2s",
+            }}
+  onMouseEnter={(e) => (e.target.style.background = "#574fd6")}
+  onMouseLeave={(e) => (e.target.style.background = "#6c63ff")}
+  onMouseDown={(e) => (e.target.style.transform = "scale(0.95)")}
+  onMouseUp={(e) => (e.target.style.transform = "scale(1)")}
+>
+  {isLogin ? "Login" : "Register"}
+</button>
 
           <p style={{ marginTop: "10px" }}>
             {isLogin ? "New here?" : "Already have an account?"}
@@ -58,8 +113,7 @@ function Landing() {
               {isLogin ? " Sign Up" : " Sign In"}
             </span>
           </p>
-        </div>
-
+        </form>
       </div>
     </div>
   );
@@ -110,11 +164,6 @@ const title = {
 const subtitle = {
   color: "#666",
   marginTop: "10px"
-};
-
-const image = {
-  width: "300px",
-  marginTop: "30px"
 };
 
 const card = {

@@ -3,11 +3,12 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 const app = express();
-
-// middleware
 app.use(express.json());
-
-// connect MongoDB
+// app.use('/api/queue', require('./routes/queue'));
+app.use('/api/auth', require('./routes/auth'));
+app.get('/', (req,res)=>{
+    res.json({message: 'QueueSense server is running!' })
+});
 mongoose.connect(process.env.MONGO_URI)
     .then(() => {
         console.log("MongoDB connected ");
@@ -16,15 +17,12 @@ mongoose.connect(process.env.MONGO_URI)
         console.log("DB Error ", err);
     });
 
-// port
 const PORT = process.env.PORT || 5000;
 
-// test route
 app.get('/', (req, res) => {
     res.send("API is running 🚀");
 });
 
-// start server
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
