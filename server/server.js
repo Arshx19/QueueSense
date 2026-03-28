@@ -8,8 +8,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-//routes
-app.use('/api/queue', require('./routes/queue'));
+
+// app.use('/api/queue', require('./routes/queue'));
+app.use('/api/auth', require('./routes/auth'));
 
 app.get('/', (req,res)=>{
     res.json({message: 'QueueSense server is running!' })
