@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
 
-// import controller
 const { updateSettings } = require('../controllers/settingsController');
 
-// route
+// PUT: update queue settings
 router.put('/queue/:id/settings', updateSettings);
 
 module.exports = router;

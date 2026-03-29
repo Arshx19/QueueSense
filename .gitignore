@@ -60,3 +60,7 @@ coverage/
 venv/
 
 .env
+
+ml/venv/
+node_modules/
+.env
