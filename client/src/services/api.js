@@ -1,6 +1,24 @@
 import axios from "axios";
-const API = axios.create({
-  baseURL: "http://localhost:5000/api"
-});
 
-export const registerUser = (data) => API.post("/auth/register", data);
+export const registerUser = (data) => {
+  return axios.post(
+    "http://localhost:5000/api/auth/register",
+    data,
+    {
+      headers: {
+        "Content-Type": "application/json"
+      }
+    }
+  );
+};
+export const loginUser = (data) => {
+  return axios.post(
+    "http://localhost:5000/api/auth/login",
+    data,
+    {
+      headers: {
+        "Content-Type": "application/json"
+      }
+    }
+  );
+};

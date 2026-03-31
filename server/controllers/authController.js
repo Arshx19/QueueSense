@@ -31,4 +31,29 @@ exports.registerUser= async(req,res)=>{
         res.status(500).json({error:err.message});
     }
 }
+exports.loginUser = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ msg: "User not found" });
+        }
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ msg: "Invalid credentials" });
+        }
+        res.json({
+            msg: "Login successful",
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role:user.role
+            }
+        });
+
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
 
