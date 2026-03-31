@@ -1,25 +1,36 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
 require('dotenv').config();
+const cors = require('cors');
 
 const app = express();
-
 app.use(cors());
+
+// middleware
 app.use(express.json());
 
-//routes
-app.use('/api/queue', require('./routes/queue'));
+// routes
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api', require('./routes/settings'));
 
-app.get('/', (req,res)=>{
-    res.json({message: 'QueueSense server is running!' })
+// test route
+app.get('/', (req, res) => {
+    res.json({ message: 'QueueSense server is running!' });
 });
 
+// mongodb connection
 mongoose.connect(process.env.MONGO_URI)
     .then(() => {
         console.log('MongoDB connected');
-        app.listen(process.env.PORT || 5000, () => {
-        console.log(`Server running on port ${process.env.PORT || 5000}`);
-    });
     })
-    .catch(err => console.log('MongoDB connection error:', err));
+    .catch((err) => {
+        console.log('DB Error:', err);
+    });
+
+// port
+const PORT = process.env.PORT || 5000;
+
+// start server
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
