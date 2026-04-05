@@ -64,4 +64,19 @@ router.get("/create-test", async (req, res) => {
   }
 });
 
+// Get queue by ID (IMPORTANT for frontend)
+router.get("/:id", async (req, res) => {
+  try {
+    const queue = await Queue.findById(req.params.id);
+
+    if (!queue) {
+      return res.status(404).json({ message: "Queue not found" });
+    }
+
+    res.json({ queue });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
