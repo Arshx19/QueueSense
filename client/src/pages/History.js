@@ -1,0 +1,284 @@
+import React, { useEffect, useState } from "react";
+import QueueChart from "../components/QueueChart";
+import historyData from "../assets/historyData";
+import "./History.css";
+
+const History = () => {
+  const [filter, setFilter] = useState("7");
+  const [history, setHistory] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [search, setSearch] = useState("");
+  const [sortOrder, setSortOrder] = useState("▼");
+
+  const rowsPerPage = 10;
+
+  useEffect(() => {
+    setHistory(historyData);
+  }, []);
+
+  // FILTER LOGIC
+  const getFilteredData = () => {
+    let temp = [...history];
+    if (filter === "7") temp = temp.slice(-7);
+    else if (filter === "30") temp = temp.slice(-30);
+    else if (filter === "YEAR") {
+      const currentYear = new Date().getFullYear();
+      temp = temp.filter(
+        item => new Date(item.date).getFullYear() === currentYear
+      );
+    }
+
+    // DATE RANGE FILTER
+    if (startDate && endDate) {
+      temp = temp.filter(item => {
+        const d = new Date(item.date);
+        return d >= new Date(startDate) && d <= new Date(endDate);
+      });
+    }
+
+    return temp;
+  };
+  const filteredData = getFilteredData();
+
+  // PAGINATION (USE FILTERED DATA)
+  const indexOfLast = currentPage * rowsPerPage;
+  const indexOfFirst = indexOfLast - rowsPerPage;
+  let tableData = [...history];
+
+  //  SEARCH
+  if (search) {
+    tableData = tableData.filter(item =>
+      new Date(item.date)
+        .toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "2-digit",
+        })
+        .toLowerCase()
+        .includes(search.toLowerCase())
+    );
+  }
+
+  // SORT
+  tableData.sort((a, b) => {
+    return sortOrder === "▲"
+      ? new Date(a.date) - new Date(b.date)
+      : new Date(b.date) - new Date(a.date);
+  });
+
+  // PAGINATION
+  const currentData = tableData.slice(indexOfFirst, indexOfLast);
+  const totalPages = Math.ceil(tableData.length / rowsPerPage) || 1;
+
+  // RESET PAGE WHEN FILTER CHANGES
+  useEffect(() => {
+    if (startDate && endDate) {
+      setFilter(""); // remove active state
+    }
+  }, [startDate, endDate]);
+
+  // Stats
+  const peak = history.length ? Math.max(...history.map(h => h.length)) : 0;
+  const avgWait = history.length
+    ? (history.reduce((sum, h) => sum + h.waitTime, 0) / history.length).toFixed(1)
+    : 0;
+
+  // Insights
+  const peakDay = history.reduce((max, curr) =>
+    curr.length > max.length ? curr : max,
+    history[0] || {}
+  );
+
+  const avgQueue = history.length
+    ? (history.reduce((sum, h) => sum + h.length, 0) / history.length).toFixed(1)
+    : 0;
+
+  const highTrafficDays = history.filter(h => h.length > 20).length;
+
+  const trend =
+    history[history.length - 1]?.length > history[0]?.length
+      ? "Increasing 📈"
+      : "Decreasing 📉";
+
+  return (
+    <div className="history-container fade-in">
+
+      <h1>Queue History Dashboard</h1>
+
+      {/* Stats */}
+      <div className="stats">
+        <div className="card glass-card">
+          <h3>🔥 Peak Queue</h3>
+          <p>{peak}</p>
+        </div>
+
+        <div className="card glass-card">
+          <h3>⏱ Avg Wait</h3>
+          <p>{avgWait} min</p>
+        </div>
+
+        <div className="card glass-card">
+          <h3>📊 Records</h3>
+          <p>{history.length}</p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="filters">
+      <div className="left-filters">
+        <button className={filter === "7" ? "active" : ""} onClick={() => {
+            const end = new Date();
+            const start = new Date();
+            start.setDate(end.getDate() - 6);
+            setFilter("7");
+            setStartDate(start.toISOString().split("T")[0]);
+            setEndDate(end.toISOString().split("T")[0]);
+          }}>Last 7 Days
+        </button>
+        <button className={filter === "30" ? "active" : ""} onClick={() => {
+            const end = new Date();
+            const start = new Date();
+            start.setDate(end.getDate() - 29);
+            setFilter("30");
+            setStartDate(start.toISOString().split("T")[0]);
+            setEndDate(end.toISOString().split("T")[0]);
+          }}>Last 30 Days
+        </button>
+        <button className={filter === "YEAR" ? "active" : ""} onClick={() => {
+            const now = new Date();
+            const start = new Date(now.getFullYear(), 0, 1);
+            const end = new Date();
+            setFilter("YEAR");
+            setStartDate(start.toISOString().split("T")[0]);
+            setEndDate(end.toISOString().split("T")[0]);
+          }}>Current Year
+        </button>
+        <button className={filter === "ALL" ? "active" : ""} onClick={() => {
+            setFilter("ALL");
+            setStartDate("");
+            setEndDate("");
+          }}>All
+        </button>
+      </div>
+      {/* RIGHT SIDE DATE FILTER */}
+      <div className="right-filters">
+        <div className="date-box">
+          <input type="date" value={startDate} onChange={(e) => {setStartDate(e.target.value); setFilter("");}}/>
+        </div>
+        <span className="date-separator">→</span>
+        <div className="date-box">
+          <input type="date" value={endDate} onChange={(e) => {setEndDate(e.target.value); setFilter("");}}/>
+        </div>
+      </div>
+    </div>
+
+      {/* Charts */}
+      {filteredData.length === 0 && (
+        <div style={{
+          textAlign: "center",
+          padding: "20px",
+          color: "#6b7280",
+          fontStyle: "italic"
+        }}>
+          No data available
+        </div>
+      )}
+
+      <QueueChart data={filteredData} />
+
+      {/* Insights + Doughnut */}
+      <div className="insight-row">
+
+        <div className="insights glass-card">
+          <h2>Insights</h2>
+          <ul>
+            <li>
+              ⬆️ Peak Queue: {peakDay?.length} on{" "}
+              {peakDay?.date &&
+                new Date(peakDay.date).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "2-digit",
+                })}
+            </li>
+            <li>📊 Average Queue Length: {avgQueue}</li>
+            <li>⚠ High Traffic Days: {highTrafficDays}</li>
+            <li>⏱ Longer queues → higher wait time</li>
+            <li>Off-peak periods show low congestion</li>
+            <li>Trend: {trend}</li>
+          </ul>
+        </div>
+
+        <div className="side-chart glass-card">
+          <h3 className="chart-title">Queue Distribution</h3>
+
+          <div className="doughnut-wrapper">
+            <QueueChart data={filteredData} showOnlyDoughnut />
+          </div>
+        </div>
+      </div>
+
+      <div className="table-controls">
+        <input type="text" placeholder="Search (e.g. 05 Jan 26)" value={search} onChange={(e) => setSearch(e.target.value)}/>
+        <button onClick={() => setSortOrder(prev => (prev === "▲" ? "▼" : "▲"))}>Sort: {sortOrder}</button>
+      </div>
+
+      {/* Table */}
+      <div className="table-box">
+        <h2>History Table</h2>
+
+        <table className="custom-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Queue Length</th>
+              <th>Wait Time</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {currentData.length > 0 ? (
+              currentData.map((item, index) => (
+                <tr key={index}>
+                  <td>
+                    {new Date(item.date).toLocaleDateString("en-GB", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "2-digit",
+                    })}
+                  </td>
+                  <td>{item.length}</td>
+                  <td>{item.waitTime} min</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="3" style={{ textAlign: "center" }}>
+                  No data available
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+
+        {/* Pagination */}
+        <div className="pagination">
+          <button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}>
+            ◀ Prev
+          </button>
+
+          <span>Page {currentPage} of {totalPages}</span>
+
+          <button onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}>
+            Next ▶
+          </button>
+        </div>
+      </div>
+
+    </div>
+  );
+};
+
+export default History;
