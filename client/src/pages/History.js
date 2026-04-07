@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import QueueChart from "../components/QueueChart";
 import historyData from "../assets/historyData";
 import "./History.css";
+import Heatmap from "../components/Heatmap";
 
 const History = () => {
   const [filter, setFilter] = useState("7");
@@ -241,6 +242,7 @@ const History = () => {
       )}
 
       <QueueChart data={filteredData} />
+      <Heatmap data={filteredData} />
 
       {/* Insights + Doughnut */}
       <div className="insight-row">
