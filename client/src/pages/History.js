@@ -273,7 +273,7 @@ const History = () => {
       )}
 
       <QueueChart data={getChartData()} selectedDate={selectedDate}/>
-      <Heatmap data={filteredData} onSelectDate={(date) => {
+      <Heatmap data={history} onSelectDate={(date) => {
           const selected = new Date(date);
           const start = new Date(selected);
           start.setDate(selected.getDate() - 3);
