@@ -25,7 +25,7 @@ ChartJS.register(
   Legend
 );
 
-const QueueChart = ({ data, showOnlyDoughnut }) => {
+const QueueChart = ({ data, showOnlyDoughnut, selectedDate }) => {
   const safeData =
     data && data.length > 0
       ? data
@@ -54,6 +54,10 @@ const QueueChart = ({ data, showOnlyDoughnut }) => {
     })
   );
 
+  const selectedIndex = data.findIndex(
+    d => selectedDate && new Date(d.date).toDateString() === new Date(selectedDate).toDateString()
+  );
+
   // Peak index
   const peakIndex = safeData.findIndex(
     d => d.length === Math.max(...safeData.map(x => x.length))
@@ -65,16 +69,18 @@ const QueueChart = ({ data, showOnlyDoughnut }) => {
     datasets: [
       {
         label: "Queue Length",
-        data: safeData.map(d => d.length),
-        backgroundColor: "rgba(20,184,166,0.2)",
+        data: data.map(d => d.length),
         borderColor: "#14b8a6",
+        backgroundColor: "rgba(20,184,166,0.2)",
         tension: 0.4,
-        pointBackgroundColor: safeData.map((_, i) =>
-          i === peakIndex ? "#ef4444" : "#14b8a6"
-        ),
-        pointRadius: safeData.map((_, i) =>
-          i === peakIndex ? 6 : 3
-        ),
+        pointBackgroundColor: data.map((_, i) => {
+          if (i === selectedIndex) return "#6c63ff"; // selected
+          if (i === peakIndex) return "#ef4444";     // peak
+          return "#14b8a6";
+        }),
+        pointRadius: data.map((_, i) => i === selectedIndex ? 7 : i === peakIndex ? 5 : 3),
+        pointBorderWidth: data.map((_, i) => i === selectedIndex ? 3 : 1 ),
+        pointBorderColor: data.map((_, i) => i === selectedIndex ? "#fff" : "#14b8a6"),
       },
       {
         label: "Prediction",
@@ -124,7 +130,7 @@ const QueueChart = ({ data, showOnlyDoughnut }) => {
       {
         label: "Wait Time",
         data: safeData.map(d => d.waitTime),
-        backgroundColor: "rgba(59,130,246,0.7)",
+        backgroundColor: data.map((_, i) => i === selectedIndex ? "#6c63ff" : "#3b82f6"),
         borderRadius: 8,
         hoverBackgroundColor: "#2563eb",
       },

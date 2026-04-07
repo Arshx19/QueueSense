@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import "./Heatmap.css";
 
 
-const Heatmap = ({ data }) => {
+const Heatmap = ({ data, onSelectDate, selectedDate }) => {
   const containerRef = useRef(null);
   const [selected, setSelected] = useState(null);
   const [tooltip, setTooltip] = useState(null);
@@ -67,13 +67,15 @@ const Heatmap = ({ data }) => {
                   <div
                     key={dIndex}
                     className={`heatmap-cell ${
-                      day && selected?.date === day.date ? "selected" : ""
+                      day && selectedDate && new Date(selectedDate).toDateString() === new Date(day.date).toDateString() ? "selected" : ""
                     }`}
                     style={{
                       backgroundColor: day ? getColor(day.length) : "#f1f5f9"
                     }}
-                    onClick={() => day && setSelected(day)}
-
+                    onClick={() => {
+                        if (!day) return;
+                        onSelectDate(day.date);
+                    }}
                     onMouseMove={(e) => {
                         if (!day) return;
                         const rect = containerRef.current.getBoundingClientRect();
@@ -94,7 +96,7 @@ const Heatmap = ({ data }) => {
       </div>
 
       {/* ✅ GLOBAL TOOLTIP */}
-      {tooltip && (
+      {tooltip?.data && (
         <div
             className="heatmap-global-tooltip"
             style={{

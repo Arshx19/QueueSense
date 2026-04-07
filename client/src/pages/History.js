@@ -13,6 +13,7 @@ const History = () => {
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState("▼");
   const [isManualDate, setIsManualDate] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(null);
 
   const rowsPerPage = 10;
 
@@ -55,6 +56,18 @@ const History = () => {
     return temp;
   };
   const filteredData = getFilteredData();
+
+  // Heaatmap selected date sync
+  const getChartData = () => {
+    if (!selectedDate) return filteredData;
+    const selected = new Date(selectedDate);
+    // show 7-day window around clicked date
+    return history.filter(item => {
+      const d = new Date(item.date);
+      const diff = (d - selected) / (1000 * 60 * 60 * 24);
+      return diff >= -3 && diff <= 3;
+    });
+  };
 
   // PAGINATION (USE FILTERED DATA)
   const indexOfLast = currentPage * rowsPerPage;
@@ -159,76 +172,94 @@ const History = () => {
 
       {/* Filters */}
       <div className="filters">
-      <div className="left-filters">
-        <button
-  className={filter === "7" ? "active" : ""}
-        onClick={() => {
-          const end = new Date();
-          const start = new Date();
-          start.setDate(end.getDate() - 6);
+        <div className="left-filters">
+          <button className={filter === "7" ? "active" : ""}
+          onClick={() => {
+            const end = new Date();
+            const start = new Date();
+            start.setDate(end.getDate() - 6);
 
-          setFilter("7");
-          setIsManualDate(false);
-          setStartDate(start.toISOString().split("T")[0]);
-          setEndDate(end.toISOString().split("T")[0]);
-        }}
-      >
-        Last 7 Days
-      </button>
+            setFilter("7");
+            setIsManualDate(false);
+            setStartDate(start.toISOString().split("T")[0]);
+            setEndDate(end.toISOString().split("T")[0]);
+          }}>Last 7 Days
+          </button>
 
-      <button className={filter === "30" ? "active" : ""} onClick={() => {
-          const end = new Date();
-          const start = new Date();
-          start.setDate(end.getDate() - 29);
-          setFilter("30");
-          setIsManualDate(false);
-          setStartDate(start.toISOString().split("T")[0]);
-          setEndDate(end.toISOString().split("T")[0]);
+          <button className={filter === "30" ? "active" : ""} onClick={() => {
+            const end = new Date();
+            const start = new Date();
+            start.setDate(end.getDate() - 29);
+            setFilter("30");
+            setIsManualDate(false);
+            setStartDate(start.toISOString().split("T")[0]);
+            setEndDate(end.toISOString().split("T")[0]);
           }}>Last 30 Days
-      </button>
-      <button className={filter === "YEAR" ? "active" : ""} onClick={() => {
-          const now = new Date();
-          const start = new Date(now.getFullYear(), 0, 1);
-          const end = new Date();
-          setFilter("YEAR");
-          setIsManualDate(false);
-          setStartDate(start.toISOString().split("T")[0]);
-          setEndDate(end.toISOString().split("T")[0]);
-        }}>Current Year
-      </button>
-      <button className={filter === "ALL" ? "active" : ""} onClick={() => {
-          if (history.length > 0) {
-            const sorted = [...history].sort(
-              (a, b) => new Date(a.date) - new Date(b.date)
-            );
-            const first = new Date(sorted[0].date);
-            const last = new Date(sorted[sorted.length - 1].date);
-            setStartDate(first.toISOString().split("T")[0]);
-            setEndDate(last.toISOString().split("T")[0]);
-          }
-          setFilter("ALL");
-          setIsManualDate(false);
-        }}>All
-      </button>
-      </div>
-      {/* RIGHT SIDE DATE FILTER */}
-      <div className="right-filters">
-        <div className="date-box">
-          <input type="date" value={startDate} onChange={(e) => {
-            setStartDate(e.target.value);
-            setIsManualDate(true);}}
-          />
+          </button>
+          <button className={filter === "YEAR" ? "active" : ""} onClick={() => {
+            const now = new Date();
+            const start = new Date(now.getFullYear(), 0, 1);
+            const end = new Date();
+            setFilter("YEAR");
+            setIsManualDate(false);
+            setStartDate(start.toISOString().split("T")[0]);
+            setEndDate(end.toISOString().split("T")[0]);
+          }}>Current Year
+          </button>
+          <button className={filter === "ALL" ? "active" : ""} onClick={() => {
+            if (history.length > 0) {
+              const sorted = [...history].sort(
+                (a, b) => new Date(a.date) - new Date(b.date)
+              );
+              const first = new Date(sorted[0].date);
+              const last = new Date(sorted[sorted.length - 1].date);
+              setStartDate(first.toISOString().split("T")[0]);
+              setEndDate(last.toISOString().split("T")[0]);
+            }
+            setFilter("ALL");
+            setIsManualDate(false);
+          }}>All
+          </button>
+          {selectedDate && (
+            <button
+              onClick={() => {
+                const end = new Date();
+                const start = new Date();
+                start.setDate(end.getDate() - 6);
+                setSelectedDate(null);
+                setFilter("7");
+                setStartDate(start.toISOString().split("T")[0]);
+                setEndDate(end.toISOString().split("T")[0]);
+              }}
+              style={{
+                marginBottom: "10px",
+                padding: "6px 12px",
+                background: "#6c63ff",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer"
+              }}>Reset View
+            </button>
+          )}
         </div>
-        <span className="date-separator">→</span>
-        <div className="date-box">
-          <input type="date" value={endDate} onChange={(e) => {
-            setEndDate(e.target.value);
-            setIsManualDate(true);}}
-          />
+        {/* RIGHT SIDE DATE FILTER */}
+        <div className="right-filters">
+          <div className="date-box">
+            <input type="date" value={startDate} onChange={(e) => {
+              setStartDate(e.target.value);
+              setIsManualDate(true);}}
+              />
+          </div>
+          <span className="date-separator">→</span>
+          <div className="date-box">
+            <input type="date" value={endDate} onChange={(e) => {
+              setEndDate(e.target.value);
+              setIsManualDate(true);}}
+              />
+          </div>
         </div>
       </div>
-    </div>
-
       {/* Charts */}
       {filteredData.length === 0 && (
         <div style={{
@@ -241,8 +272,20 @@ const History = () => {
         </div>
       )}
 
-      <QueueChart data={filteredData} />
-      <Heatmap data={filteredData} />
+      <QueueChart data={getChartData()} selectedDate={selectedDate}/>
+      <Heatmap data={filteredData} onSelectDate={(date) => {
+          const selected = new Date(date);
+          const start = new Date(selected);
+          start.setDate(selected.getDate() - 3);
+          const end = new Date(selected);
+          end.setDate(selected.getDate() + 3);
+          setSelectedDate(date);
+          setFilter("");
+          setStartDate(start.toISOString().split("T")[0]);
+          setEndDate(end.toISOString().split("T")[0]);
+        }}
+        selectedDate={selectedDate}
+      />
 
       {/* Insights + Doughnut */}
       <div className="insight-row">
@@ -322,7 +365,6 @@ const History = () => {
           </button>
         </div>
       </div>
-
     </div>
   );
 };
