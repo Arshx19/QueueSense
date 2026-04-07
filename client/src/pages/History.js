@@ -11,28 +11,41 @@ const History = () => {
   const [endDate, setEndDate] = useState("");
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState("▼");
+  const [isManualDate, setIsManualDate] = useState(false);
 
   const rowsPerPage = 10;
 
   useEffect(() => {
     setHistory(historyData);
+
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 6);
+
+    setStartDate(start.toISOString().split("T")[0]);
+    setEndDate(end.toISOString().split("T")[0]);
   }, []);
 
   // FILTER LOGIC
   const getFilteredData = () => {
     let temp = [...history];
-    if (filter === "7") temp = temp.slice(-7);
-    else if (filter === "30") temp = temp.slice(-30);
-    else if (filter === "YEAR") {
+
+    // APPLY BUTTON FILTER ONLY
+    if (filter === "7") return temp.slice(-7);
+    if (filter === "30") return temp.slice(-30);
+
+    if (filter === "YEAR") {
       const currentYear = new Date().getFullYear();
-      temp = temp.filter(
+      return temp.filter(
         item => new Date(item.date).getFullYear() === currentYear
       );
     }
 
-    // DATE RANGE FILTER
-    if (startDate && endDate) {
-      temp = temp.filter(item => {
+    if (filter === "ALL") return temp;
+
+    // APPLY DATE RANGE ONLY WHEN NO BUTTON ACTIVE
+    if (isManualDate && startDate && endDate) {
+      return temp.filter(item => {
         const d = new Date(item.date);
         return d >= new Date(startDate) && d <= new Date(endDate);
       });
@@ -71,13 +84,6 @@ const History = () => {
   // PAGINATION
   const currentData = tableData.slice(indexOfFirst, indexOfLast);
   const totalPages = Math.ceil(tableData.length / rowsPerPage) || 1;
-
-  // RESET PAGE WHEN FILTER CHANGES
-  useEffect(() => {
-    if (startDate && endDate) {
-      setFilter(""); // remove active state
-    }
-  }, [startDate, endDate]);
 
   // Stats
   const peak = history.length ? Math.max(...history.map(h => h.length)) : 0;
@@ -128,48 +134,71 @@ const History = () => {
       {/* Filters */}
       <div className="filters">
       <div className="left-filters">
-        <button className={filter === "7" ? "active" : ""} onClick={() => {
-            const end = new Date();
-            const start = new Date();
-            start.setDate(end.getDate() - 6);
-            setFilter("7");
-            setStartDate(start.toISOString().split("T")[0]);
-            setEndDate(end.toISOString().split("T")[0]);
-          }}>Last 7 Days
-        </button>
-        <button className={filter === "30" ? "active" : ""} onClick={() => {
-            const end = new Date();
-            const start = new Date();
-            start.setDate(end.getDate() - 29);
-            setFilter("30");
-            setStartDate(start.toISOString().split("T")[0]);
-            setEndDate(end.toISOString().split("T")[0]);
+        <button
+  className={filter === "7" ? "active" : ""}
+        onClick={() => {
+          const end = new Date();
+          const start = new Date();
+          start.setDate(end.getDate() - 6);
+
+          setFilter("7");
+          setIsManualDate(false);
+          setStartDate(start.toISOString().split("T")[0]);
+          setEndDate(end.toISOString().split("T")[0]);
+        }}
+      >
+        Last 7 Days
+      </button>
+
+      <button className={filter === "30" ? "active" : ""} onClick={() => {
+          const end = new Date();
+          const start = new Date();
+          start.setDate(end.getDate() - 29);
+          setFilter("30");
+          setIsManualDate(false);
+          setStartDate(start.toISOString().split("T")[0]);
+          setEndDate(end.toISOString().split("T")[0]);
           }}>Last 30 Days
-        </button>
-        <button className={filter === "YEAR" ? "active" : ""} onClick={() => {
-            const now = new Date();
-            const start = new Date(now.getFullYear(), 0, 1);
-            const end = new Date();
-            setFilter("YEAR");
-            setStartDate(start.toISOString().split("T")[0]);
-            setEndDate(end.toISOString().split("T")[0]);
-          }}>Current Year
-        </button>
-        <button className={filter === "ALL" ? "active" : ""} onClick={() => {
-            setFilter("ALL");
-            setStartDate("");
-            setEndDate("");
-          }}>All
-        </button>
+      </button>
+      <button className={filter === "YEAR" ? "active" : ""} onClick={() => {
+          const now = new Date();
+          const start = new Date(now.getFullYear(), 0, 1);
+          const end = new Date();
+          setFilter("YEAR");
+          setIsManualDate(false);
+          setStartDate(start.toISOString().split("T")[0]);
+          setEndDate(end.toISOString().split("T")[0]);
+        }}>Current Year
+      </button>
+      <button className={filter === "ALL" ? "active" : ""} onClick={() => {
+          if (history.length > 0) {
+            const sorted = [...history].sort(
+              (a, b) => new Date(a.date) - new Date(b.date)
+            );
+            const first = new Date(sorted[0].date);
+            const last = new Date(sorted[sorted.length - 1].date);
+            setStartDate(first.toISOString().split("T")[0]);
+            setEndDate(last.toISOString().split("T")[0]);
+          }
+          setFilter("ALL");
+          setIsManualDate(false);
+        }}>All
+      </button>
       </div>
       {/* RIGHT SIDE DATE FILTER */}
       <div className="right-filters">
         <div className="date-box">
-          <input type="date" value={startDate} onChange={(e) => {setStartDate(e.target.value); setFilter("");}}/>
+          <input type="date" value={startDate} onChange={(e) => {
+            setStartDate(e.target.value);
+            setIsManualDate(true);}}
+          />
         </div>
         <span className="date-separator">→</span>
         <div className="date-box">
-          <input type="date" value={endDate} onChange={(e) => {setEndDate(e.target.value); setFilter("");}}/>
+          <input type="date" value={endDate} onChange={(e) => {
+            setEndDate(e.target.value);
+            setIsManualDate(true);}}
+          />
         </div>
       </div>
     </div>
