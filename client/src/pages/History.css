@@ -283,3 +283,17 @@ h1 {
   color: #6c63ff;
   font-weight: bold;
 }
+
+button:active {
+  transform: scale(0.95);
+}
+
+button {
+  transition: all 0.2s ease;
+}
+
+.filters button.active {
+  background: #6c63ff;
+  color: white;
+  box-shadow: 0 0 10px rgba(108, 99, 255, 0.5);
+}

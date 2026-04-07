@@ -91,22 +91,47 @@ const History = () => {
     ? (history.reduce((sum, h) => sum + h.waitTime, 0) / history.length).toFixed(1)
     : 0;
 
-  // Insights
   const peakDay = history.reduce((max, curr) =>
-    curr.length > max.length ? curr : max,
-    history[0] || {}
+    curr.length > (max?.length || 0) ? curr : max,
+    {}
   );
-
   const avgQueue = history.length
-    ? (history.reduce((sum, h) => sum + h.length, 0) / history.length).toFixed(1)
+    ? (
+        history.reduce((sum, h) => sum + h.length, 0) /
+        history.length
+      ).toFixed(1)
     : 0;
 
-  const highTrafficDays = history.filter(h => h.length > 20).length;
+  // INSIGHTS
+  const getDayName = (date) =>
+    new Date(date).toLocaleDateString("en-US", { weekday: "long" });
 
-  const trend =
-    history[history.length - 1]?.length > history[0]?.length
-      ? "Increasing 📈"
-      : "Decreasing 📉";
+  // Most busy day of week
+  const dayMap = {};
+  history.forEach(h => {
+    const day = getDayName(h.date);
+    dayMap[day] = (dayMap[day] || 0) + h.length;
+  });
+
+  const busiestDay = Object.keys(dayMap).reduce((a, b) =>
+    dayMap[a] > dayMap[b] ? a : b,
+    "N/A"
+  );
+
+  // Growth %
+  const first = history[0]?.length || 0;
+  const last = history[history.length - 1]?.length || 0;
+  const growth =
+    first === 0 ? 0 : (((last - first) / first) * 100).toFixed(1);
+
+  // Peak hour pattern (mock insight)
+  const peakType =
+    avgQueue > 20 ? "Consistently High Load 🚨" :
+    avgQueue > 12 ? "Moderate Traffic ⚠️" :
+    "Mostly Low Traffic ✅";
+
+  // Spike detection
+  const spikes = history.filter(h => h.length > avgQueue * 1.5).length;
 
   return (
     <div className="history-container fade-in">
@@ -219,30 +244,20 @@ const History = () => {
 
       {/* Insights + Doughnut */}
       <div className="insight-row">
-
         <div className="insights glass-card">
           <h2>Insights</h2>
           <ul>
-            <li>
-              ⬆️ Peak Queue: {peakDay?.length} on{" "}
-              {peakDay?.date &&
-                new Date(peakDay.date).toLocaleDateString("en-GB", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "2-digit",
-                })}
-            </li>
-            <li>📊 Average Queue Length: {avgQueue}</li>
-            <li>⚠ High Traffic Days: {highTrafficDays}</li>
-            <li>⏱ Longer queues → higher wait time</li>
-            <li>Off-peak periods show low congestion</li>
-            <li>Trend: {trend}</li>
+            <li>📅 Busiest Day: {busiestDay}</li>
+            <li>📈 Growth Trend: {growth}%</li>
+            <li>🔥 Peak Queue: {peakDay?.length} on {peakDay?.date}</li>
+            <li>📊 Avg Queue: {avgQueue}</li>
+            <li>⚠ Spikes Detected: {spikes} days</li>
+            <li>🧠 Pattern: {peakType}</li>
           </ul>
         </div>
 
         <div className="side-chart glass-card">
           <h3 className="chart-title">Queue Distribution</h3>
-
           <div className="doughnut-wrapper">
             <QueueChart data={filteredData} showOnlyDoughnut />
           </div>
