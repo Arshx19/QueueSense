@@ -1,6 +1,7 @@
+require('dotenv').config(); // MUST be at top
+
 const express = require('express');
 const mongoose = require('mongoose');
-require('dotenv').config();
 const cors = require('cors');
 
 const queueOpsRoutes = require('./routes/queueOps');
@@ -21,19 +22,18 @@ app.get('/', (req, res) => {
     res.json({ message: 'QueueSense server is running!' });
 });
 
-// port
 const PORT = process.env.PORT || 5000;
 
-
-// ✅ CONNECT DB FIRST → THEN START SERVER
-mongoose.connect("mongodb://127.0.0.1:27017/queuesense")
+// ✅ CONNECT DB
+mongoose.connect(process.env.MONGO_URI)
 .then(() => {
-    console.log("MongoDB Connected");
+    console.log("MongoDB Connected ✅");
+    console.log("Database:", mongoose.connection.name); // 🔥 IMPORTANT DEBUG
 
     app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
+        console.log(`Server running on port ${PORT}`);
     });
 })
 .catch(err => {
-    console.error("MongoDB connection error:", err);
+    console.error("MongoDB error ❌:", err);
 });
