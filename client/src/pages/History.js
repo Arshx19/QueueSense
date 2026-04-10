@@ -3,6 +3,7 @@ import QueueChart from "../components/QueueChart";
 import historyData from "../assets/historyData";
 import "./History.css";
 import Heatmap from "../components/Heatmap";
+import axios from "axios";
 
 const History = () => {
   const [filter, setFilter] = useState("7");
@@ -16,17 +17,48 @@ const History = () => {
   const [selectedDate, setSelectedDate] = useState(null);
 
   const rowsPerPage = 10;
+  const queueId = "69d88649a430aa7c333caf5e"; // PUT YOUR REAL ID HERE
 
   useEffect(() => {
-    setHistory(historyData);
+    const fetchHistory = async () => {
+      try {
+        const res = await axios.get(`http://localhost:5000/api/history/${queueId}`);
 
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - 6);
+        let data = res.data;
 
-    setStartDate(start.toISOString().split("T")[0]);
-    setEndDate(end.toISOString().split("T")[0]);
-  }, []);
+        // fallback to fake data
+        if (!data || data.length === 0) {
+          data = historyData;
+        }
+
+        // handle BOTH formats
+        const formatted = data.map(item => ({
+          date: item.timestamp
+            ? item.timestamp.split("T")[0]  // backend
+            : item.date,                   // fake data
+          length: item.length,
+          waitTime: item.waitTime
+        }));
+
+        const end = new Date();
+        const start = new Date();
+        start.setDate(end.getDate() - 6);
+
+        setStartDate(start.toISOString().split("T")[0]);
+        setEndDate(end.toISOString().split("T")[0]);
+
+        setHistory(formatted);
+
+      } catch (err) {
+        console.error(err);
+
+        // fallback if API fails
+        setHistory(historyData);
+      }
+    };
+
+    fetchHistory();
+}, []);
 
   // FILTER LOGIC
   const getFilteredData = () => {
