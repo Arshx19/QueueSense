@@ -39,8 +39,19 @@ const API = axios.create({
   baseURL: "http://localhost:5000/api",
 });
 
+// AUTH
 export const registerUser = (data) => API.post("/auth/register", data);
 
+// QUEUE CRUD
 export const createQueue = (data) => API.post("/queues", data);
 export const updateQueue = (id, data) => API.put(`/queues/${id}`, data);
 export const getQueue = (id) => API.get(`/queues/${id}`);
+
+
+
+// get all queues
+export const getQueues = () => API.get("/queues");
+
+// join queue
+export const joinQueue = (queueId) => 
+  API.post(`/queues/join/${queueId}`);
