@@ -8,6 +8,13 @@ router.post("/:id/add", async (req, res) => {
   if (!queue) return res.status(404).json({ message: "Not found" });
 
   queue.currentLength++;
+
+  queue.history.push({
+    length: queue.currentLength,
+    waitTime: queue.currentLength * (queue.serviceRate || 1),
+    timestamp: new Date()
+  });
+
   await queue.save();
 
   res.json(queue);
@@ -19,6 +26,13 @@ router.post("/:id/serve", async (req, res) => {
   if (!queue) return res.status(404).json({ message: "Not found" });
 
   if (queue.currentLength > 0) queue.currentLength--;
+
+  queue.history.push({
+    length: queue.currentLength,
+    waitTime: queue.currentLength * (queue.serviceRate || 1),
+    timestamp: new Date()
+  });
+
   await queue.save();
 
   res.json(queue);
@@ -30,6 +44,13 @@ router.post("/:id/reset", async (req, res) => {
   if (!queue) return res.status(404).json({ message: "Not found" });
 
   queue.currentLength = 0;
+
+  queue.history.push({
+    length: 0,
+    waitTime: 0,
+    timestamp: new Date()
+  });
+
   await queue.save();
 
   res.json(queue);
