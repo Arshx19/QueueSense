@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const queueOpsRoutes = require('./routes/queueOps');
 const queueOpsRoutes = require('./routes/queueOps');
+const historyRoutes = require('./routes/history');
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api', require('./routes/settings'));
 app.use('/api/queue', queueOpsRoutes);
+app.use('/api/history', historyRoutes);
 
 // test route
 app.get('/', (req, res) => {

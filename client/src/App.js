@@ -5,6 +5,7 @@ import Settings from "./pages/settings";
 import Dashboard from "./pages/Dashboard";
 import QueuePage from "./pages/QueuePage";
 import PublicDisplay from "./pages/PublicDisplay";
+import History from "./pages/History";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/settings" element={<Settings/>}/>
         <Route path="/queue" element={<QueuePage />} />
         <Route path="/display" element={<PublicDisplay />} />
+        <Route path="/history" element={<History />} />
       </Routes>
     </Router>
   );
