@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getQueues, joinQueue } from "../services/api";
+import { getQueues, joinQueue, createQueue } from "../services/api";
 import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
@@ -8,10 +8,12 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  
   const fetchQueues = async () => {
     try {
       const res = await getQueues();
-      setQueues(res.data);
+      console.log("Fetched Queues:", res.data);
+      setQueues(res.data.reverse());
     } catch (err) {
       console.log(err);
     } finally {
@@ -22,19 +24,18 @@ const Dashboard = () => {
   useEffect(() => {
     fetchQueues();
 
-    const interval = setInterval(fetchQueues, 5000); // 🔄 live update
+    const interval = setInterval(fetchQueues, 5000); // live update
     return () => clearInterval(interval);
   }, []);
 
+  // 🔹 Join queue
   const handleJoin = async (queue) => {
     try {
       const res = await joinQueue(queue._id);
 
-      const token = res.data.token;
-
       setMyQueue({
         ...queue,
-        token
+        waitTime: res.data.waitTime
       });
 
       alert("Joined queue!");
@@ -43,10 +44,29 @@ const Dashboard = () => {
     }
   };
 
+  // 🔹 Create queue
+  const handleCreate = async () => {
+    try {
+      await createQueue({
+        name: "Test Queue",
+        maxCapacity: 50,
+        serviceRate: 2
+      });
+
+      alert("Queue Created");
+
+      await fetchQueues(); // refresh UI
+    } catch (err) {
+      console.log(err.response?.data || err.message);
+    }
+  };
+
+  // 🔹 Logout
   const logout = () => {
     localStorage.removeItem("user");
     navigate("/");
   };
+  console.log("STATE QUEUES:", queues);
 
   return (
     <div style={main}>
@@ -64,27 +84,17 @@ const Dashboard = () => {
 
         <h1>Dashboard</h1>
 
+        {/* 🔥 CREATE BUTTON */}
+        <button onClick={handleCreate}>
+          Create Test Queue
+        </button>
+
         {/* 👤 MY QUEUE */}
         {myQueue && (
           <div style={myQueueCard}>
             <h2>My Queue</h2>
             <p>{myQueue.name}</p>
-            <p>Your Token: {myQueue.token}</p>
-
-            <p>
-              People Ahead:{" "}
-              {
-                myQueue.users?.filter(u => u < myQueue.token).length
-              }
-            </p>
-
-            <p>
-              ETA:{" "}
-              {
-                (myQueue.users?.filter(u => u < myQueue.token).length || 0) *
-                myQueue.avgTimePerUser
-              } mins
-            </p>
+            <p>Estimated Wait Time: {myQueue.waitTime} mins</p>
           </div>
         )}
 
@@ -94,12 +104,24 @@ const Dashboard = () => {
         ) : (
           <div style={grid}>
             {queues.map((q) => (
-              <div key={q._id} style={card}>
+              <div
+                key={q._id}
+                style={card}
+                onClick={() => navigate(`/queue/${q._id}`)}
+              >
                 <h3>{q.name}</h3>
-                <p>Current Token: {q.currentToken}</p>
-                <p>Total People: {q.users.length}</p>
 
-                <button onClick={() => handleJoin(q)}>
+                {/* ✅ FIXED FIELDS */}
+                <p>People in Queue: {q.currentLength}</p>
+                <p>Wait Time: {q.waitTime} mins</p>
+
+                {/* 🔹 JOIN BUTTON */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // prevent card click
+                    handleJoin(q);
+                  }}
+                >
                   Join Queue
                 </button>
               </div>
@@ -111,6 +133,9 @@ const Dashboard = () => {
     </div>
   );
 };
+
+
+// 🎨 Styles
 
 const main = {
   display: "flex",
@@ -147,7 +172,8 @@ const card = {
   borderRadius: "12px",
   background: "rgba(255,255,255,0.85)",
   backdropFilter: "blur(10px)",
-  boxShadow: "0 8px 20px rgba(0,0,0,0.08)"
+  boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
+  cursor: "pointer"
 };
 
 const myQueueCard = {
@@ -160,5 +186,3 @@ const myQueueCard = {
 };
 
 export default Dashboard;
-
-

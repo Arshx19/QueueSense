@@ -1,38 +1,3 @@
-// import axios from "axios";
-// const API = axios.create({
-//   baseURL: "http://localhost:5000/api"
-// });
-
-// export const registerUser = (data) => API.post("/auth/register", data);
-// import axios from "axios";
-
-// const API = axios.create({
-//   baseURL: "http://localhost:5000/api"
-// });
-
-// export default API;
-
-// export const registerUser = (data) => API.post("/auth/register", data);
-
-// export const loginUser = (data) => API.post("/auth/login", data);
-
-// import axios from "axios";
-
-// const API = axios.create({
-//   baseURL: "http://localhost:5000/api"
-// });
-
-// // AUTH
-// export const registerUser = (data) => API.post("/auth/register", data);
-// export const loginUser = (data) => API.post("/auth/login", data);
-
-// // QUEUE
-// export const getQueues = () => API.get("/queue");
-// export const joinQueue = (id) => API.post(`/queue/join/${id}`);
-
-// export default API;
-
-// ------------------------------------------
 import axios from "axios";
 
 const API = axios.create({
@@ -43,15 +8,25 @@ const API = axios.create({
 export const registerUser = (data) => API.post("/auth/register", data);
 
 // QUEUE CRUD
-export const createQueue = (data) => API.post("/queues", data);
-export const updateQueue = (id, data) => API.put(`/queues/${id}`, data);
-export const getQueue = (id) => API.get(`/queues/${id}`);
 
+// ✅ CREATE
+export const createQueue = (data) => 
+  API.post("/queue/create", data);
 
+// ✅ GET ALL
+export const getQueues = () => 
+  API.get("/queue");
 
-// get all queues
-export const getQueues = () => API.get("/queues");
+// ✅ GET SINGLE
+export const getQueue = (id) => 
+  API.get(`/queue/${id}`);
 
-// join queue
-export const joinQueue = (queueId) => 
-  API.post(`/queues/join/${queueId}`);
+// ✅ JOIN
+export const joinQueue = (id) => 
+  API.post(`/queue/${id}/join`);
+
+// ✅ UPDATE
+export const updateQueue = (id, data) => 
+  API.put(`/queue/${id}`, data);
+
+export default API;
