@@ -4,12 +4,11 @@ const Queue = require('../models/Queue');
 const router = express.Router();
 
 
-// 🔹 GET all queues
+
 router.get('/', async (req, res) => {
   try {
     const queues = await Queue.find();
 
-    // add waitTime to each queue
     const result = queues.map(q => {
       const waitTime = q.serviceRate > 0
         ? (q.currentLength / q.serviceRate).toFixed(1)
@@ -25,7 +24,6 @@ router.get('/', async (req, res) => {
 });
 
 
-// 🔹 CREATE queue
 router.post('/create', async (req, res) => {
   try {
     const { name, maxCapacity, serviceRate, location } = req.body;
@@ -57,7 +55,7 @@ router.post('/create', async (req, res) => {
 });
 
 
-// 🔹 GET single queue
+
 router.get('/:id', async (req, res) => {
   try {
     const queue = await Queue.findById(req.params.id);
@@ -77,7 +75,6 @@ router.get('/:id', async (req, res) => {
 });
 
 
-// 🔹 JOIN queue (MOST IMPORTANT)
 router.post('/:id/join', async (req, res) => {
   try {
     const queue = await Queue.findById(req.params.id);
@@ -94,14 +91,14 @@ router.post('/:id/join', async (req, res) => {
       return res.status(400).json({ error: 'Queue is full' });
     }
 
-    // increase length
+    
     queue.currentLength += 1;
 
     const waitTime = queue.serviceRate > 0
       ? (queue.currentLength / queue.serviceRate).toFixed(1)
       : null;
 
-    // add history
+
     queue.history.push({
       timestamp: new Date(),
       length: queue.currentLength,
@@ -121,7 +118,6 @@ router.post('/:id/join', async (req, res) => {
 });
 
 
-// 🔹 LEAVE queue (optional but useful)
 router.post('/:id/leave', async (req, res) => {
   try {
     const queue = await Queue.findById(req.params.id);
@@ -154,7 +150,6 @@ router.post('/:id/leave', async (req, res) => {
 });
 
 
-// 🔹 UPDATE queue
 router.put('/:id', async (req, res) => {
   try {
     const queue = await Queue.findById(req.params.id);
@@ -184,7 +179,7 @@ router.put('/:id', async (req, res) => {
 });
 
 
-// 🔹 DELETE queue
+
 router.delete('/:id', async (req, res) => {
   try {
     const deleted = await Queue.findByIdAndDelete(req.params.id);
@@ -200,7 +195,6 @@ router.delete('/:id', async (req, res) => {
 });
 
 
-// 🔹 PAUSE / RESUME queue
 router.post('/:id/pause', async (req, res) => {
   try {
     const queue = await Queue.findById(req.params.id);
