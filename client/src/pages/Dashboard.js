@@ -1,188 +1,249 @@
 import React, { useEffect, useState } from "react";
-import { getQueues, joinQueue, createQueue } from "../services/api";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const Dashboard = () => {
+function Dashboard() {
   const [queues, setQueues] = useState([]);
-  const [myQueue, setMyQueue] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+
+  const [form, setForm] = useState({
+    name: "",
+    maxCapacity: "",
+    serviceRate: "",
+  });
+
   const navigate = useNavigate();
 
-  
   const fetchQueues = async () => {
     try {
-      const res = await getQueues();
-      console.log("Fetched Queues:", res.data);
-      setQueues(res.data.reverse());
+      const res = await axios.get("http://localhost:5000/api/queue");
+      setQueues(res.data);
     } catch (err) {
-      console.log(err);
-    } finally {
-      setLoading(false);
+      console.error(err);
+      setQueues([]);
     }
   };
 
   useEffect(() => {
     fetchQueues();
-
-    const interval = setInterval(fetchQueues, 5000); // live update
-    return () => clearInterval(interval);
   }, []);
 
-  // 🔹 Join queue
-  const handleJoin = async (queue) => {
-    try {
-      const res = await joinQueue(queue._id);
-
-      setMyQueue({
-        ...queue,
-        waitTime: res.data.waitTime
-      });
-
-      alert("Joined queue!");
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-  // 🔹 Create queue
-  const handleCreate = async () => {
-    try {
-      await createQueue({
-        name: "Test Queue",
-        maxCapacity: 50,
-        serviceRate: 2
-      });
-
-      alert("Queue Created");
-
-      await fetchQueues(); // refresh UI
-    } catch (err) {
-      console.log(err.response?.data || err.message);
-    }
-  };
-
-  // 🔹 Logout
-  const logout = () => {
-    localStorage.removeItem("user");
+  const handleLogout = () => {
+    localStorage.clear();
     navigate("/");
   };
-  console.log("STATE QUEUES:", queues);
+
+  const handleChange = (e) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const createQueue = async () => {
+    try {
+      await axios.post("http://localhost:5000/api/queue/create", form);
+      setShowForm(false);
+      setForm({ name: "", maxCapacity: "", serviceRate: "" });
+      fetchQueues();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const deleteQueue = async (id) => {
+    try {
+      await axios.delete(`http://localhost:5000/api/queue/${id}`);
+      fetchQueues();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
-    <div style={main}>
+    <div style={container}>
+      {/* SIDEBAR */}
+      <div style={sidebar}>
+        <h2 style={logo}>QueueSense</h2>
 
-      {/* Sidebar */}
-      <aside style={sidebar}>
-        <h2>QueueSense</h2>
-        <p>Dashboard</p>
-        <p>Settings</p>
-        <button onClick={logout}>Logout</button>
-      </aside>
+        <p style={sideItem}>Dashboard</p>
 
-      {/* Main */}
-      <div style={content}>
+        <p style={sideItem} onClick={() => navigate("/history")}>
+          History
+        </p>
 
-        <h1>Dashboard</h1>
+        <button style={logoutBtn} onClick={handleLogout}>
+          Logout
+        </button>
+      </div>
 
-        {/* 🔥 CREATE BUTTON */}
-        <button onClick={handleCreate}>
-          Create Test Queue
+      {/* MAIN */}
+      <div style={main}>
+        <h1 style={title}>Dashboard</h1>
+
+        <button style={createBtn} onClick={() => setShowForm(!showForm)}>
+          + Create Queue
         </button>
 
-        {/* 👤 MY QUEUE */}
-        {myQueue && (
-          <div style={myQueueCard}>
-            <h2>My Queue</h2>
-            <p>{myQueue.name}</p>
-            <p>Estimated Wait Time: {myQueue.waitTime} mins</p>
+        {showForm && (
+          <div style={formBox}>
+            <input
+              name="name"
+              placeholder="Queue Name"
+              value={form.name}
+              onChange={handleChange}
+              style={input}
+            />
+            <input
+              name="maxCapacity"
+              placeholder="Max Capacity"
+              value={form.maxCapacity}
+              onChange={handleChange}
+              style={input}
+            />
+            <input
+              name="serviceRate"
+              placeholder="Service Rate"
+              value={form.serviceRate}
+              onChange={handleChange}
+              style={input}
+            />
+
+            <button style={submitBtn} onClick={createQueue}>
+              Create
+            </button>
           </div>
         )}
 
-        {/* 📊 ALL QUEUES */}
-        {loading ? (
-          <p>Loading...</p>
-        ) : (
-          <div style={grid}>
-            {queues.map((q) => (
-              <div
-                key={q._id}
-                style={card}
-                onClick={() => navigate(`/queue/${q._id}`)}
+        {/* QUEUE CARDS */}
+        <div style={grid}>
+          {queues.map((q) => (
+            <div
+              key={q._id}
+              style={card}
+              onClick={() => navigate(`/queue/${q._id}`)}
+            >
+              <h3>{q.name}</h3>
+              <p>People: {q.currentLength}</p>
+              <p>Wait: {q.waitTime} mins</p>
+
+              {/* DELETE BUTTON */}
+              <button
+                style={deleteBtn}
+                onClick={(e) => {
+                  e.stopPropagation(); // 🔥 prevents card click
+                  deleteQueue(q._id);
+                }}
               >
-                <h3>{q.name}</h3>
-
-                {/* ✅ FIXED FIELDS */}
-                <p>People in Queue: {q.currentLength}</p>
-                <p>Wait Time: {q.waitTime} mins</p>
-
-                {/* 🔹 JOIN BUTTON */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation(); // prevent card click
-                    handleJoin(q);
-                  }}
-                >
-                  Join Queue
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
+                Delete
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
-};
+}
 
+/* STYLES */
 
-// 🎨 Styles
-
-const main = {
+const container = {
   display: "flex",
   minHeight: "100vh",
-  background: `
-    radial-gradient(circle at 25% 35%, #e8dcf5 0%, transparent 40%),
-    radial-gradient(circle at 75% 65%, #f5d7dd 0%, transparent 40%),
-    linear-gradient(135deg, #f4effa, #f8f5fc)
-  `,
-  fontFamily: "Segoe UI"
+  background: "linear-gradient(135deg, #ece6ff, #ffd9ea)",
 };
 
 const sidebar = {
   width: "220px",
-  background: "rgba(255,255,255,0.6)",
-  backdropFilter: "blur(10px)",
   padding: "20px",
-  boxShadow: "0 8px 20px rgba(0,0,0,0.05)"
+  background: "#fff",
+  boxShadow: "0 0 20px rgba(0,0,0,0.05)",
+  display: "flex",
+  flexDirection: "column",
 };
 
-const content = {
+const logo = {
+  color: "#6c63ff",
+  marginBottom: "20px",
+};
+
+const sideItem = {
+  marginBottom: "12px",
+  cursor: "pointer",
+};
+
+const logoutBtn = {
+  marginTop: "auto",
+  padding: "10px",
+  background: "#ff4d4f",
+  color: "white",
+  border: "none",
+  borderRadius: "8px",
+  cursor: "pointer",
+};
+
+const main = {
   flex: 1,
-  padding: "40px"
+  padding: "30px",
+};
+
+const title = {
+  marginBottom: "20px",
+};
+
+const createBtn = {
+  background: "#6c63ff",
+  color: "white",
+  padding: "10px 16px",
+  borderRadius: "10px",
+  border: "none",
+  cursor: "pointer",
+};
+
+const formBox = {
+  marginTop: "15px",
+  display: "flex",
+  gap: "10px",
+};
+
+const input = {
+  padding: "8px",
+  borderRadius: "8px",
+  border: "1px solid #ccc",
+};
+
+const submitBtn = {
+  background: "#00c853",
+  color: "white",
+  border: "none",
+  padding: "8px 12px",
+  borderRadius: "8px",
 };
 
 const grid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
-  gap: "20px"
+  display: "flex",
+  gap: "20px",
+  marginTop: "30px",
+  flexWrap: "wrap",
 };
 
 const card = {
+  background: "white",
   padding: "20px",
-  borderRadius: "12px",
-  background: "rgba(255,255,255,0.85)",
-  backdropFilter: "blur(10px)",
-  boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
-  cursor: "pointer"
+  borderRadius: "16px",
+  width: "200px",
+  cursor: "pointer",
+  boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
 };
 
-const myQueueCard = {
-  padding: "20px",
-  marginBottom: "20px",
-  borderRadius: "12px",
-  background: "#6c63ff",
+const deleteBtn = {
+  marginTop: "10px",
+  background: "#ff4d4f",
   color: "white",
-  boxShadow: "0 8px 20px rgba(108,99,255,0.3)"
+  border: "none",
+  padding: "6px 10px",
+  borderRadius: "8px",
+  cursor: "pointer",
 };
 
 export default Dashboard;
