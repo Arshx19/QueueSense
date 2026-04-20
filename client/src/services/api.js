@@ -1,24 +1,35 @@
 import axios from "axios";
+const API = axios.create({
+  baseURL: "http://localhost:5000/api",
+});
 
-export const registerUser = (data) => {
-  return axios.post(
-    "http://localhost:5000/api/auth/register",
-    data,
-    {
-      headers: {
-        "Content-Type": "application/json"
-      }
-    }
-  );
-};
-export const loginUser = (data) => {
-  return axios.post(
-    "http://localhost:5000/api/auth/login",
-    data,
-    {
-      headers: {
-        "Content-Type": "application/json"
-      }
-    }
-  );
-};
+// AUTH
+export const registerUser = (data) =>
+  API.post("/auth/register", data);
+
+export const loginUser = (data) =>
+  API.post("/auth/login", data);
+
+// QUEUE CRUD
+
+// CREATE
+export const createQueue = (data) =>
+  API.post("/queue/create", data);
+
+// GET ALL
+export const getQueues = () =>
+  API.get("/queue");
+
+// GET SINGLE
+export const getQueue = (id) =>
+  API.get(`/queue/${id}`);
+
+// JOIN
+export const joinQueue = (id) =>
+  API.post(`/queue/${id}/join`);
+
+// UPDATE
+export const updateQueue = (id, data) =>
+  API.put(`/queue/${id}`, data);
+
+export default API;

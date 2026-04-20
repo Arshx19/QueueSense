@@ -1,0 +1,36 @@
+.chart-container {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+/* chart cards */
+.chart-box {
+  flex: 1;
+  background: rgba(255,255,255,0.6);
+  padding: 15px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.chart-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(99,102,241,0.2);
+}
+
+.chart-inner {
+  height: 250px;
+}
+
+.chart-box h3 {
+  margin-bottom: 10px;
+}
+
+.chart-box canvas {
+  max-height: 280px;
+}
+
+/* Full width chart */
+.full-width {
+  grid-column: span 2;
+}

@@ -3,10 +3,8 @@ import { useNavigate } from "react-router-dom";
 import queueImage from "../assets/line.png";
 import { registerUser, loginUser } from "../services/api";
 
-
 function Landing() {
-  const navigate = useNavigate();
-
+const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
 
   const [form, setForm] = useState({
@@ -33,7 +31,6 @@ function Landing() {
       } else {
         alert("Registered successfully");
       }
-
     } catch (err) {
       console.log("ERROR:", err.response?.data || err.message);
     }
@@ -207,5 +204,4 @@ const link = {
   cursor: "pointer",
   fontWeight: "bold"
 };
-
 export default Landing;
