@@ -1,11 +1,36 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useParams, useNavigate } from "react-router-dom";
 
 function Settings() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({
     name: "",
     capacity: "",
     serviceRate: "",
   });
+
+  useEffect(() => {
+    const fetchQueue = async () => {
+      try {
+        const res = await axios.get(
+          `http://localhost:5000/api/queue/${id}`
+        );
+
+        setForm({
+          name: res.data.name,
+          capacity: res.data.maxCapacity,
+          serviceRate: res.data.serviceRate,
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchQueue();
+  }, [id]);
 
   const handleChange = (e) => {
     setForm({
@@ -14,99 +39,58 @@ function Settings() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(form);
+
+    try {
+      await axios.put(
+        `http://localhost:5000/api/queue/${id}`,
+        {
+          name: form.name,
+          maxCapacity: form.capacity,
+          serviceRate: form.serviceRate,
+        }
+      );
+
+      alert("Changes saved");
+
+      navigate(`/queue/${id}`);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
-    <div
-      style={{
-        height: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        background:
-          "linear-gradient(to right, #f5f7fa, #e4ecf7)", // 👈 same vibe as landing
-      }}
-    >
-      <div
-        style={{
-          width: "400px",
-          padding: "30px",
-          borderRadius: "15px",
-          background: "white",
-          boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
-        }}
-      >
-        <h1
-          style={{
-            textAlign: "center",
-            marginBottom: "20px",
-            fontWeight: "600",
-            color: "#333",
-          }}
-        >
-          Queue Settings
-        </h1>
+    <div style={bg}>
+      <div style={card}>
+        <h2 style={title}>Queue Settings</h2>
 
         <form onSubmit={handleSubmit}>
-          
-          <div style={{ marginBottom: "18px" }}>
-            <label style={{ color: "#555", fontSize: "14px" }}>
-              Queue Name
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              placeholder="Enter queue name"
-              style={inputStyle}
-            />
-          </div>
+          <input
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            placeholder="Queue Name"
+            style={input}
+          />
 
-          <div style={{ marginBottom: "18px" }}>
-            <label style={{ color: "#555", fontSize: "14px" }}>
-              Max Capacity
-            </label>
-            <input
-              type="number"
-              name="capacity"
-              value={form.capacity}
-              onChange={handleChange}
-              placeholder="Enter capacity"
-              style={inputStyle}
-            />
-          </div>
+          <input
+            name="capacity"
+            value={form.capacity}
+            onChange={handleChange}
+            placeholder="Max Capacity"
+            style={input}
+          />
 
-          <div style={{ marginBottom: "20px" }}>
-            <label style={{ color: "#555", fontSize: "14px" }}>
-              Service Rate
-            </label>
-            <input
-              type="number"
-              name="serviceRate"
-              value={form.serviceRate}
-              onChange={handleChange}
-              placeholder="Customers per hour"
-              style={inputStyle}
-            />
-          </div>
+          <input
+            name="serviceRate"
+            value={form.serviceRate}
+            onChange={handleChange}
+            placeholder="Service Rate"
+            style={input}
+          />
 
-          <button
-            type="submit"
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "8px",
-              border: "none",
-              background: "linear-gradient(to right, #6a11cb, #2575fc)",
-              color: "white",
-              fontWeight: "600",
-              cursor: "pointer",
-            }}
-          >
+          <button type="submit" style={btn}>
             Save Changes
           </button>
         </form>
@@ -115,14 +99,44 @@ function Settings() {
   );
 }
 
-const inputStyle = {
+/* STYLES */
+
+const bg = {
+  minHeight: "100vh",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  background: "linear-gradient(135deg, #ece6ff, #ffd9ea)",
+};
+
+const card = {
+  background: "white",
+  padding: "30px",
+  borderRadius: "20px",
+  width: "350px",
+  boxShadow: "0 20px 40px rgba(0,0,0,0.1)",
+};
+
+const title = {
+  marginBottom: "20px",
+};
+
+const input = {
   width: "100%",
   padding: "10px",
-  marginTop: "6px",
-  borderRadius: "8px",
-  border: "1px solid #ddd",
-  outline: "none",
-  fontSize: "14px",
+  marginBottom: "15px",
+  borderRadius: "10px",
+  border: "1px solid #ccc",
+};
+
+const btn = {
+  width: "100%",
+  padding: "10px",
+  borderRadius: "10px",
+  border: "none",
+  background: "#6c63ff",
+  color: "white",
+  cursor: "pointer",
 };
 
 export default Settings;

@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
 import Landing from "./pages/Landing";
 import Register from "./pages/Register";
 import Settings from "./pages/settings";
@@ -12,13 +13,25 @@ function App() {
   return (
     <Router>
       <Routes>
+
         <Route path="/" element={<Landing />} />
+
         <Route path="/settings" element={<Settings/>}/>
+
+
+        <Route path="/register" element={<Register />} />
+
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/settings" element={<Settings/>}/>
-        <Route path="/queue" element={<QueuePage />} />
+
+        {/* <Route path="/settings" element={<Settings />} /> */}
+
+        <Route path="/queue/:id/settings" element={<Settings />} />
+
+        <Route path="/queue/:id" element={<QueuePage />} />
+
         <Route path="/display" element={<PublicDisplay />} />
         <Route path="/history" element={<History />} />
+
       </Routes>
     </Router>
   );

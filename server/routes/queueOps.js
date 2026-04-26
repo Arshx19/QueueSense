@@ -74,7 +74,7 @@ router.get("/create-test", async (req, res) => {
       name: "Test Queue",
       currentLength: 5,
       maxCapacity: 20,
-      serviceRate: 2, // 
+      serviceRate: 2, 
       isPaused: false,
       history: []
     });

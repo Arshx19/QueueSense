@@ -1,66 +1,6 @@
-# ======================
-# NODE (client + server)
-# ======================
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# ======================
-# ENV FILES (IMPORTANT)
-# ======================
-.env
-.env.*
-server/.env
-client/.env
-
-# ======================
-# BUILD FILES
-# ======================
-build/
-dist/
-
-# ======================
-# LOG FILES
-# ======================
-logs/
-*.log
-
-# ======================
-# OS FILES
-# ======================
-.DS_Store
-Thumbs.db
-
-# ======================
-# EDITOR FILES
-# ======================
-.vscode/
-.idea/
-
-# ======================
-# PYTHON (ML folder)
-# ======================
+venv/
+ml/venv/
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-*.pkl
-
-# ======================
-# CACHE / MISC
-# ======================
-coverage/
-.cache/
-
-
-.vscode/
-
-
-venv/
-
-.env
-
-ml/venv/
-node_modules/
 .env
