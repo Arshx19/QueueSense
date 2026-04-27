@@ -1,34 +1,45 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useNavigate, useParams } from "react-router-dom";
 
 function PublicDisplay() {
-  const queueId = "69d1272a28c3b992848f27de";
+  const { id } = useParams(); // ✅ use URL param instead of localStorage
+  const role = localStorage.getItem("role");
+
   const [queue, setQueue] = useState(null);
+  const navigate = useNavigate();
 
   const fetchQueue = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/queue/${queueId}`);
-      setQueue(res.data.queue);
+      const res = await axios.get(
+        `http://localhost:5000/api/queue/${id}`
+      );
+      setQueue(res.data);
     } catch (err) {
-      console.error(err);
+      console.error("DISPLAY ERROR:", err.response?.data || err.message);
     }
   };
 
   useEffect(() => {
+    if (!id) return;
+
     fetchQueue();
     const interval = setInterval(fetchQueue, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
-  if (!queue)
+    return () => clearInterval(interval);
+  }, [id]);
+
+  // ⛔ Loading state
+  if (!queue) {
     return (
       <div style={loadingStyle}>
         <div style={loadingCard}>
-          <div style={spinnerStyle} />
+          <div style={spinnerStyle}></div>
           <p style={loadingText}>Loading Display...</p>
         </div>
       </div>
     );
+  }
 
   const waitMins =
     queue.serviceRate > 0
@@ -37,42 +48,62 @@ function PublicDisplay() {
 
   return (
     <div style={container}>
-      {/* Navbar */}
+      {/* NAVBAR */}
       <div style={navbar}>
-        <span style={{color: "#16a34a", fontSize: "12px", fontWeight: "600"}}>
-        ● LIVE</span>
+        <span style={liveDot}>● LIVE</span>
+
         <span style={brand}>QueueSense</span>
-        <span style={navBadge}>Live Display</span>
+
+        <div style={navRight}>
+          <button
+            style={backBtn}
+            onClick={() =>
+              navigate(role === "admin" ? "/dashboard" : "/user-dashboard")
+            }
+          >
+            ← Dashboard
+          </button>
+
+          <span style={navBadge}>Live Display</span>
+        </div>
       </div>
 
-      {/* Card */}
+      {/* MAIN CARD */}
       <div style={card}>
-        <p style={cardLabel}>Queue Status</p>
-        <h1 style={cardTitle}>Live Monitor</h1>
+        <p style={cardLabel}>QUEUE STATUS</p>
+
+        <h1 style={cardTitle}>{queue.name}</h1>
+
+        <p style={{ color: "#6c63ff", fontWeight: "600" }}>
+          {queue.organization}
+        </p>
+
         <div style={divider} />
 
-        {/* Big Number */}
         <div style={numberBox}>{queue.currentLength}</div>
         <p style={subText}>People Currently in Queue</p>
 
-        {/* Stats Row */}
         <div style={statsRow}>
           <div style={statChip}>
-            <span style={statChipLabel}>Estimated Wait</span>
-            <span style={statChipValue}>{waitMins} min{waitMins !== 1 ? "s" : ""}</span>
+            <span style={statChipLabel}>ESTIMATED WAIT</span>
+            <span style={statChipValue}>
+              {waitMins} min{waitMins !== 1 ? "s" : ""}
+            </span>
           </div>
+
           <div
             style={{
               ...statChip,
-              background: queue.isPaused ? "#fff1f2" : "#f0fdf4",
-              borderColor: queue.isPaused ? "#fca5a5" : "#86efac",
+              background: queue.isPaused ? "#fee2e2" : "#e6f9f0",
+              border: "1px solid",
+              borderColor: queue.isPaused ? "#f87171" : "#4ade80",
             }}
           >
-            <span style={statChipLabel}>Status</span>
+            <span style={statChipLabel}>STATUS</span>
             <span
               style={{
                 ...statChipValue,
-                color: queue.isPaused ? "#ef4444" : "#16a34a",
+                color: queue.isPaused ? "#dc2626" : "#16a34a",
               }}
             >
               {queue.isPaused ? "Paused" : "Active"}
@@ -80,203 +111,181 @@ function PublicDisplay() {
           </div>
         </div>
 
-        {/* Alert */}
         {queue.currentLength > queue.maxCapacity * 0.8 && (
           <div style={alertBox}>
-            <span style={alertIcon}>⚠</span>
-            Queue is Overcrowded
+            ⚠ Queue is Overcrowded
           </div>
         )}
       </div>
+
       <p style={footer}>Auto-refreshes every 3 seconds</p>
     </div>
   );
 }
 
-/* ── Styles ── */
+/* ===== STYLES ===== */
 
 const container = {
+  fontFamily: "'Poppins', sans-serif",
   minHeight: "100vh",
-  background: "linear-gradient(135deg, #ede9fe 0%, #f5f3ff 40%, #fce7f3 100%)",
-  fontFamily: "'Segoe UI', sans-serif",
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
+  justifyContent: "center",
+  background:
+    "radial-gradient(circle at 30% 30%, #ede9fe, transparent 40%), radial-gradient(circle at 70% 70%, #fce7f3, transparent 40%), linear-gradient(135deg, #f5f3ff, #fdf2f8)",
 };
 
 const navbar = {
+  position: "absolute",
+  top: 0,
   width: "100%",
-  padding: "16px 40px",
+  padding: "12px 30px",
   background: "white",
-  borderBottom: "1px solid #e5e7eb",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  boxSizing: "border-box",
+  boxShadow: "0 1px 6px rgba(0,0,0,0.05)",
 };
 
 const brand = {
-  fontSize: "20px",
+  fontSize: "18px",
   fontWeight: "700",
-  color: "#4f46e5",
+  color: "#6c63ff",
 };
 
 const navBadge = {
+  fontSize: "11px",
+  background: "#ede9fe",
+  padding: "4px 10px",
+  borderRadius: "999px",
+};
+
+const liveDot = {
+  color: "#16a34a",
   fontSize: "12px",
   fontWeight: "600",
-  color: "#6d28d9",
-  background: "#ede9fe",
-  padding: "4px 12px",
-  borderRadius: "999px",
-  letterSpacing: "0.04em",
+};
+
+const navRight = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+};
+
+const backBtn = {
+  padding: "6px 12px",
+  border: "none",
+  background: "#6c63ff",
+  color: "white",
+  borderRadius: "6px",
+  cursor: "pointer",
+  fontSize: "12px",
 };
 
 const card = {
-  background: "white",
-  padding: "44px 48px",
-  borderRadius: "20px",
-  boxShadow: "0 8px 40px rgba(99, 102, 241, 0.12)",
+  background: "rgba(255,255,255,0.95)",
+  backdropFilter: "blur(12px)",
+  padding: "40px",
+  borderRadius: "22px",
+  width: "380px",
   textAlign: "center",
-  width: "460px",
-  marginTop: "64px",
+  boxShadow: "0 20px 60px rgba(0,0,0,0.08)",
 };
 
 const cardLabel = {
-  fontSize: "12px",
-  fontWeight: "600",
-  letterSpacing: "0.1em",
+  fontSize: "11px",
   color: "#a78bfa",
-  textTransform: "uppercase",
-  margin: "0 0 6px 0",
+  letterSpacing: "1px",
 };
 
 const cardTitle = {
-  fontSize: "28px",
+  fontSize: "26px",
   fontWeight: "700",
-  color: "#1e1b4b",
-  margin: "0",
+  marginTop: "5px",
 };
 
 const divider = {
   height: "2px",
-  background: "linear-gradient(90deg, #4f46e5, #a78bfa)",
-  borderRadius: "999px",
-  margin: "20px 0",
-  width: "48px",
-  marginLeft: "auto",
-  marginRight: "auto",
+  width: "40px",
+  background: "#6c63ff",
+  margin: "10px auto",
+  borderRadius: "10px",
 };
 
 const numberBox = {
-  fontSize: "96px",
+  fontSize: "72px",
   fontWeight: "800",
-  color: "#4f46e5",
-  lineHeight: "1",
-  margin: "8px 0 4px",
-  letterSpacing: "-4px",
-  transform: "scale(1.05)",
-  // transition: "transform 0.2s ease",
-  animation: "pulse 0.6s ease"
+  color: "#5b5bf7",
+  margin: "10px 0",
 };
 
 const subText = {
-  fontSize: "15px",
   color: "#6b7280",
-  margin: "0 0 28px 0",
+  fontSize: "13px",
 };
 
 const statsRow = {
   display: "flex",
   gap: "12px",
   justifyContent: "center",
-  marginBottom: "24px",
+  marginTop: "15px",
 };
 
 const statChip = {
-  flex: 1,
-  background: "#f5f3ff",
-  border: "1px solid #ddd6fe",
-  borderRadius: "12px",
-  padding: "14px 16px",
-  display: "flex",
-  flexDirection: "column",
-  gap: "4px",
+  padding: "14px 20px",
+  borderRadius: "14px",
+  background: "#f4f3ff",
+  minWidth: "140px",
 };
 
 const statChipLabel = {
-  fontSize: "11px",
-  fontWeight: "600",
-  color: "#9ca3af",
-  textTransform: "uppercase",
-  letterSpacing: "0.06em",
+  fontSize: "10px",
+  display: "block",
+  color: "#6b7280",
 };
 
 const statChipValue = {
-  fontSize: "18px",
-  fontWeight: "700",
-  color: "#4f46e5",
+  fontSize: "16px",
+  fontWeight: "600",
 };
 
 const alertBox = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: "8px",
-  background: "#fff1f2",
-  border: "1px solid #fca5a5",
-  color: "#be123c",
-  padding: "12px 16px",
-  borderRadius: "10px",
+  marginTop: "15px",
+  color: "#dc2626",
   fontWeight: "600",
-  fontSize: "14px",
-};
-
-const alertIcon = {
-  fontSize: "16px",
 };
 
 const footer = {
-  marginTop: "20px",
-  fontSize: "12px",
+  marginTop: "25px",
+  fontSize: "11px",
   color: "#9ca3af",
 };
 
 const loadingStyle = {
   minHeight: "100vh",
-  background: "linear-gradient(135deg, #ede9fe 0%, #f5f3ff 40%, #fce7f3 100%)",
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
-  fontFamily: "'Segoe UI', sans-serif",
 };
 
 const loadingCard = {
+  padding: "30px",
   background: "white",
-  padding: "48px 56px",
-  borderRadius: "20px",
-  boxShadow: "0 8px 40px rgba(99, 102, 241, 0.12)",
-  textAlign: "center",
+  borderRadius: "10px",
 };
 
 const spinnerStyle = {
-  width: "40px",
-  height: "40px",
-  border: "3px solid #e0e7ff",
-  borderTop: "3px solid #4f46e5",
+  width: "30px",
+  height: "30px",
+  border: "3px solid #ccc",
+  borderTop: "3px solid #6c63ff",
   borderRadius: "50%",
-  animation: "spin 0.9s linear infinite",
-  margin: "0 auto 16px",
+  animation: "spin 1s linear infinite",
 };
 
 const loadingText = {
-  color: "#6b7280",
-  fontSize: "15px",
-  margin: 0,
+  marginTop: "10px",
 };
-
-// Inject spinner keyframe
-const styleTag = document.createElement("style");
-styleTag.textContent = `@keyframes spin { to { transform: rotate(360deg); } }`;
-document.head.appendChild(styleTag);
 
 export default PublicDisplay;

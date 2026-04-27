@@ -174,6 +174,7 @@ const page = {
 };
 
 const container = {
+  fontFamily: "'Poppins', sans-serif",
   width: "100%",
   maxWidth: "1100px",
 };

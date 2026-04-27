@@ -1,38 +1,37 @@
 const mongoose = require('mongoose');
+
 const queueSchema = new mongoose.Schema({
-    name : {
-        type:String,
-        required:true
+    name: {
+        type: String,
+        required: true
     },
-    currentLength : {
+    currentLength: {
         type: Number,
-        default:0
+        default: 0
     },
-    maxCapacity : {
+    maxCapacity: {
         type: Number,
-        required : true
+        required: true
     },
     serviceRate: {
-        type : Number,
-        required : true
+        type: Number,
+        required: true
     },
-    isPaused :{
-        type:Boolean,
-        default:false
+    organization: {
+        type: String,
+        required: true
     },
-    history:[
+    isPaused: {
+        type: Boolean,
+        default: false
+    },
+    history: [
         {
-            timestamp:{
-                type:Date
-            },
-            length:{
-                type:Number
-            },
-            waitTime:{
-                type:Number
-            }
+            timestamp: Date,
+            length: Number,
+            waitTime: Number
         }
     ]
-},{timestamp:true});
+}, { timestamps: true });
 
-module.exports = mongoose.model('Queue',queueSchema);
+module.exports = mongoose.model('Queue', queueSchema);
