@@ -23,5 +23,3 @@ QueueSense/
 └── README.md
 ```
 
-## Setup Instructions
-Coming soon.
