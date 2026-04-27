@@ -1,8 +1,24 @@
 const express = require("express");
 const router = express.Router();
 const Queue = require("../models/Queue");
+const History = require("../models/history");
 
-// 1. GET history of a queue
+// ✅ 1. USER HISTORY (NEW - IMPORTANT)
+router.get("/user/:userId", async (req, res) => {
+  try {
+    const history = await History.find({
+      userId: req.params.userId
+    })
+    .populate("queueId", "name organization")
+    .sort({ createdAt: -1 });
+
+    res.json(history);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ✅ 2. QUEUE HISTORY (YOUR ORIGINAL)
 router.get("/:queueId", async (req, res) => {
   try {
     const queue = await Queue.findById(req.params.queueId);
@@ -17,7 +33,7 @@ router.get("/:queueId", async (req, res) => {
   }
 });
 
-// 2. GET stats of a queue
+// ✅ 3. STATS (UNCHANGED)
 router.get("/stats/:queueId", async (req, res) => {
   try {
     const queue = await Queue.findById(req.params.queueId);
@@ -60,7 +76,7 @@ router.get("/stats/:queueId", async (req, res) => {
   }
 });
 
-// 3. DELETE history
+// ✅ 4. DELETE
 router.delete("/:queueId", async (req, res) => {
   try {
     const queue = await Queue.findById(req.params.queueId);

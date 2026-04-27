@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 function Dashboard() {
   const [queues, setQueues] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [adminName, setAdminName] = useState("");
+  const [org, setOrg] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -14,19 +16,43 @@ function Dashboard() {
 
   const navigate = useNavigate();
 
-  const fetchQueues = async () => {
+  useEffect(() => {
+    const role = localStorage.getItem("role");
+
+    if (role !== "admin") {
+      navigate("/");
+      return;
+    }
+
+    const name = localStorage.getItem("userName");
+    const organization = localStorage.getItem("organization");
+
+    setAdminName(name || "Admin");
+    setOrg(organization || "");
+  }, [navigate]);
+
+  const fetchQueues = async (organization) => {
     try {
-      const res = await axios.get("http://localhost:5000/api/queue");
+      if (!organization) {
+        setQueues([]);
+        return;
+      }
+
+      const res = await axios.get(
+        `http://localhost:5000/api/queue/org/${organization}`
+      );
+
       setQueues(res.data);
     } catch (err) {
-      console.error(err);
       setQueues([]);
     }
   };
 
   useEffect(() => {
-    fetchQueues();
-  }, []);
+    if (org) {
+      fetchQueues(org);
+    }
+  }, [org]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -42,29 +68,49 @@ function Dashboard() {
 
   const createQueue = async () => {
     try {
-      await axios.post("http://localhost:5000/api/queue/create", form);
+      if (!form.name || !form.maxCapacity || !form.serviceRate) {
+        alert("Fill all fields");
+        return;
+      }
+
+      if (!org) {
+        alert("Organization missing");
+        return;
+      }
+
+      await axios.post("http://localhost:5000/api/queue/create", {
+        name: form.name,
+        maxCapacity: Number(form.maxCapacity),
+        serviceRate: Number(form.serviceRate),
+        organization: org,
+      });
+
       setShowForm(false);
       setForm({ name: "", maxCapacity: "", serviceRate: "" });
-      fetchQueues();
+
+      fetchQueues(org);
     } catch (err) {
-      console.error(err);
+      alert("Queue creation failed");
     }
   };
 
   const deleteQueue = async (id) => {
     try {
       await axios.delete(`http://localhost:5000/api/queue/${id}`);
-      fetchQueues();
-    } catch (err) {
-      console.error(err);
-    }
+      fetchQueues(org);
+    } catch (err) {}
   };
 
   return (
     <div style={container}>
-      {/* SIDEBAR */}
       <div style={sidebar}>
         <h2 style={logo}>QueueSense</h2>
+
+        <p style={{ fontWeight: "bold", marginBottom: "10px" }}>
+          👋 Hi, {adminName}
+        </p>
+
+        <p style={{ marginBottom: "10px" }}>{org}</p>
 
         <p style={sideItem}>Dashboard</p>
 
@@ -77,7 +123,6 @@ function Dashboard() {
         </button>
       </div>
 
-      {/* MAIN */}
       <div style={main}>
         <h1 style={title}>Dashboard</h1>
 
@@ -115,7 +160,6 @@ function Dashboard() {
           </div>
         )}
 
-        {/* QUEUE CARDS */}
         <div style={grid}>
           {queues.map((q) => (
             <div
@@ -124,14 +168,18 @@ function Dashboard() {
               onClick={() => navigate(`/queue/${q._id}`)}
             >
               <h3>{q.name}</h3>
-              <p>People: {q.currentLength}</p>
-              <p>Wait: {q.waitTime} mins</p>
 
-              {/* DELETE BUTTON */}
+              <p style={{ color: "#6c63ff", fontWeight: "bold" }}>
+                {q.organization}
+              </p>
+
+              <p>People: {q.currentLength}</p>
+              <p>Wait: {q.waitTime || 0} mins</p>
+
               <button
                 style={deleteBtn}
                 onClick={(e) => {
-                  e.stopPropagation(); // 🔥 prevents card click
+                  e.stopPropagation();
                   deleteQueue(q._id);
                 }}
               >
@@ -145,9 +193,8 @@ function Dashboard() {
   );
 }
 
-/* STYLES */
-
 const container = {
+  fontFamily: "'Poppins', sans-serif",
   display: "flex",
   minHeight: "100vh",
   background: "linear-gradient(135deg, #ece6ff, #ffd9ea)",

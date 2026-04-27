@@ -1,21 +1,38 @@
-
 const express = require('express');
 const Queue = require('../models/Queue');
+const History = require('../models/history'); 
 const router = express.Router();
+const axios = require("axios");
 
+// 🔮 ML Wait Time
+const calculateWaitTime = async (length, serviceRate) => {
+  try {
+    const mlRes = await axios.post("http://localhost:5001/predict", {
+      length,
+      serviceRate
+    });
+    return mlRes.data.predicted_wait;
+  } catch (err) {
+    return serviceRate > 0
+      ? (length / serviceRate).toFixed(1)
+      : 0;
+  }
+};
 
-
+// ✅ GET ALL QUEUES
 router.get('/', async (req, res) => {
   try {
     const queues = await Queue.find();
 
-    const result = queues.map(q => {
-      const waitTime = q.serviceRate > 0
-        ? (q.currentLength / q.serviceRate).toFixed(1)
-        : null;
-
-      return { ...q.toObject(), waitTime };
-    });
+    const result = await Promise.all(
+      queues.map(async (q) => {
+        const waitTime = await calculateWaitTime(
+          q.currentLength,
+          q.serviceRate
+        );
+        return { ...q.toObject(), waitTime };
+      })
+    );
 
     res.json(result);
   } catch (err) {
@@ -23,12 +40,35 @@ router.get('/', async (req, res) => {
   }
 });
 
+// ✅ GET BY ORGANIZATION
+router.get('/org/:org', async (req, res) => {
+  try {
+    const queues = await Queue.find({
+      organization: req.params.org
+    });
 
+    const result = await Promise.all(
+      queues.map(async (q) => {
+        const waitTime = await calculateWaitTime(
+          q.currentLength,
+          q.serviceRate
+        );
+        return { ...q.toObject(), waitTime };
+      })
+    );
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ✅ CREATE QUEUE
 router.post('/create', async (req, res) => {
   try {
-    const { name, maxCapacity, serviceRate, location } = req.body;
+    const { name, maxCapacity, serviceRate, location, organization } = req.body;
 
-    if (!name || !maxCapacity || !serviceRate) {
+    if (!name || !maxCapacity || !serviceRate || !organization) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -36,10 +76,10 @@ router.post('/create', async (req, res) => {
       name,
       maxCapacity,
       serviceRate,
-      location
+      location,
+      organization
     });
 
-    // initial history
     queue.history.push({
       timestamp: new Date(),
       length: queue.currentLength,
@@ -54,8 +94,7 @@ router.post('/create', async (req, res) => {
   }
 });
 
-
-
+// ✅ GET SINGLE QUEUE
 router.get('/:id', async (req, res) => {
   try {
     const queue = await Queue.findById(req.params.id);
@@ -64,9 +103,10 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Queue not found' });
     }
 
-    const waitTime = queue.serviceRate > 0
-      ? (queue.currentLength / queue.serviceRate).toFixed(1)
-      : null;
+    const waitTime = await calculateWaitTime(
+      queue.currentLength,
+      queue.serviceRate
+    );
 
     res.json({ ...queue.toObject(), waitTime });
   } catch (err) {
@@ -74,7 +114,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-
+// ✅ JOIN QUEUE (UPDATED WITH HISTORY)
 router.post('/:id/join', async (req, res) => {
   try {
     const queue = await Queue.findById(req.params.id);
@@ -91,13 +131,12 @@ router.post('/:id/join', async (req, res) => {
       return res.status(400).json({ error: 'Queue is full' });
     }
 
-    
     queue.currentLength += 1;
 
-    const waitTime = queue.serviceRate > 0
-      ? (queue.currentLength / queue.serviceRate).toFixed(1)
-      : null;
-
+    const waitTime = await calculateWaitTime(
+      queue.currentLength,
+      queue.serviceRate
+    );
 
     queue.history.push({
       timestamp: new Date(),
@@ -107,17 +146,25 @@ router.post('/:id/join', async (req, res) => {
 
     await queue.save();
 
-    res.json({
-      message: 'Joined queue',
-      waitTime
-    });
+    // 🔥 SAVE USER HISTORY
+    if (req.body.userId) {
+      await History.create({
+        userId: req.body.userId,
+        queueId: queue._id,
+        action: "joined",
+        queueLength: queue.currentLength,
+        waitTime
+      });
+    }
+
+    res.json({ message: 'Joined queue', waitTime });
 
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-
+// ✅ LEAVE QUEUE (UPDATED WITH HISTORY)
 router.post('/:id/leave', async (req, res) => {
   try {
     const queue = await Queue.findById(req.params.id);
@@ -130,9 +177,10 @@ router.post('/:id/leave', async (req, res) => {
       queue.currentLength -= 1;
     }
 
-    const waitTime = queue.serviceRate > 0
-      ? (queue.currentLength / queue.serviceRate).toFixed(1)
-      : null;
+    const waitTime = await calculateWaitTime(
+      queue.currentLength,
+      queue.serviceRate
+    );
 
     queue.history.push({
       timestamp: new Date(),
@@ -142,6 +190,17 @@ router.post('/:id/leave', async (req, res) => {
 
     await queue.save();
 
+    // 🔥 SAVE USER HISTORY
+    if (req.body.userId) {
+      await History.create({
+        userId: req.body.userId,
+        queueId: queue._id,
+        action: "left",
+        queueLength: queue.currentLength,
+        waitTime
+      });
+    }
+
     res.json({ message: 'Left queue' });
 
   } catch (err) {
@@ -149,7 +208,7 @@ router.post('/:id/leave', async (req, res) => {
   }
 });
 
-
+// ✅ UPDATE QUEUE
 router.put('/:id', async (req, res) => {
   try {
     const queue = await Queue.findById(req.params.id);
@@ -160,9 +219,10 @@ router.put('/:id', async (req, res) => {
 
     Object.assign(queue, req.body);
 
-    const waitTime = queue.serviceRate > 0
-      ? (queue.currentLength / queue.serviceRate).toFixed(1)
-      : null;
+    const waitTime = await calculateWaitTime(
+      queue.currentLength,
+      queue.serviceRate
+    );
 
     queue.history.push({
       timestamp: new Date(),
@@ -178,8 +238,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-
-
+// ✅ DELETE QUEUE
 router.delete('/:id', async (req, res) => {
   try {
     const deleted = await Queue.findByIdAndDelete(req.params.id);
@@ -194,7 +253,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-
+// ✅ PAUSE / RESUME
 router.post('/:id/pause', async (req, res) => {
   try {
     const queue = await Queue.findById(req.params.id);
@@ -211,11 +270,9 @@ router.post('/:id/pause', async (req, res) => {
       message: `Queue ${queue.isPaused ? 'paused' : 'resumed'}`,
       isPaused: queue.isPaused
     });
-
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
 });
-
 
 module.exports = router;
