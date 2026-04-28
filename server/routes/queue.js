@@ -1,20 +1,29 @@
 const express = require('express');
 const Queue = require('../models/Queue');
-const History = require('../models/history'); 
+const History = require('../models/history');
 const router = express.Router();
 const axios = require("axios");
 
-// 🔮 ML Wait Time
+// 🔮 ML Wait Time (SAFE)
 const calculateWaitTime = async (length, serviceRate) => {
   try {
     const mlRes = await axios.post("http://localhost:5001/predict", {
       length,
       serviceRate
     });
-    return mlRes.data.predicted_wait;
+
+    return (
+      mlRes.data.waitTime ||
+      mlRes.data.prediction ||
+      mlRes.data.predicted_wait ||
+      0
+    );
+
   } catch (err) {
+    console.log("ML ERROR:", err.message);
+
     return serviceRate > 0
-      ? (length / serviceRate).toFixed(1)
+      ? Number((length / serviceRate).toFixed(1))
       : 0;
   }
 };
@@ -36,11 +45,12 @@ router.get('/', async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    console.error("GET ALL ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
-// ✅ GET BY ORGANIZATION
+// ✅ 🔥 IMPORTANT FIX (ADMIN DASHBOARD)
 router.get('/org/:org', async (req, res) => {
   try {
     const queues = await Queue.find({
@@ -58,7 +68,9 @@ router.get('/org/:org', async (req, res) => {
     );
 
     res.json(result);
+
   } catch (err) {
+    console.error("ORG ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -77,24 +89,21 @@ router.post('/create', async (req, res) => {
       maxCapacity,
       serviceRate,
       location,
-      organization
-    });
-
-    queue.history.push({
-      timestamp: new Date(),
-      length: queue.currentLength,
-      waitTime: 0
+      organization,
+      currentLength: 0,
+      history: []
     });
 
     await queue.save();
 
     res.status(201).json(queue);
   } catch (err) {
-    res.status(400).json({ error: 'Invalid data' });
+    console.error("CREATE ERROR:", err);
+    res.status(400).json({ error: err.message });
   }
 });
 
-// ✅ GET SINGLE QUEUE
+// ✅ GET SINGLE QUEUE (must be AFTER /org)
 router.get('/:id', async (req, res) => {
   try {
     const queue = await Queue.findById(req.params.id);
@@ -110,11 +119,12 @@ router.get('/:id', async (req, res) => {
 
     res.json({ ...queue.toObject(), waitTime });
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    console.error("GET ONE ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
-// ✅ JOIN QUEUE (UPDATED WITH HISTORY)
+// ✅ JOIN QUEUE
 router.post('/:id/join', async (req, res) => {
   try {
     const queue = await Queue.findById(req.params.id);
@@ -131,11 +141,14 @@ router.post('/:id/join', async (req, res) => {
       return res.status(400).json({ error: 'Queue is full' });
     }
 
+    queue.currentLength = queue.currentLength || 0;
+    queue.history = queue.history || [];
+
     queue.currentLength += 1;
 
     const waitTime = await calculateWaitTime(
       queue.currentLength,
-      queue.serviceRate
+      queue.serviceRate || 1
     );
 
     queue.history.push({
@@ -146,25 +159,30 @@ router.post('/:id/join', async (req, res) => {
 
     await queue.save();
 
-    // 🔥 SAVE USER HISTORY
+    // ✅ SAFE HISTORY
     if (req.body.userId) {
-      await History.create({
-        userId: req.body.userId,
-        queueId: queue._id,
-        action: "joined",
-        queueLength: queue.currentLength,
-        waitTime
-      });
+      try {
+        await History.create({
+          userId: req.body.userId,
+          queueId: queue._id,
+          action: "joined",
+          queueLength: queue.currentLength,
+          waitTime
+        });
+      } catch (err) {
+        console.log("History JOIN failed:", err.message);
+      }
     }
 
     res.json({ message: 'Joined queue', waitTime });
 
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    console.error("JOIN ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
-// ✅ LEAVE QUEUE (UPDATED WITH HISTORY)
+// ✅ LEAVE QUEUE
 router.post('/:id/leave', async (req, res) => {
   try {
     const queue = await Queue.findById(req.params.id);
@@ -173,13 +191,15 @@ router.post('/:id/leave', async (req, res) => {
       return res.status(404).json({ error: 'Queue not found' });
     }
 
+    queue.currentLength = queue.currentLength || 0;
+
     if (queue.currentLength > 0) {
       queue.currentLength -= 1;
     }
 
     const waitTime = await calculateWaitTime(
       queue.currentLength,
-      queue.serviceRate
+      queue.serviceRate || 1
     );
 
     queue.history.push({
@@ -190,51 +210,26 @@ router.post('/:id/leave', async (req, res) => {
 
     await queue.save();
 
-    // 🔥 SAVE USER HISTORY
+    // ✅ SAFE HISTORY
     if (req.body.userId) {
-      await History.create({
-        userId: req.body.userId,
-        queueId: queue._id,
-        action: "left",
-        queueLength: queue.currentLength,
-        waitTime
-      });
+      try {
+        await History.create({
+          userId: req.body.userId,
+          queueId: queue._id,
+          action: "left",
+          queueLength: queue.currentLength,
+          waitTime
+        });
+      } catch (err) {
+        console.log("History LEAVE failed:", err.message);
+      }
     }
 
     res.json({ message: 'Left queue' });
 
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// ✅ UPDATE QUEUE
-router.put('/:id', async (req, res) => {
-  try {
-    const queue = await Queue.findById(req.params.id);
-
-    if (!queue) {
-      return res.status(404).json({ error: 'Queue not found' });
-    }
-
-    Object.assign(queue, req.body);
-
-    const waitTime = await calculateWaitTime(
-      queue.currentLength,
-      queue.serviceRate
-    );
-
-    queue.history.push({
-      timestamp: new Date(),
-      length: queue.currentLength,
-      waitTime
-    });
-
-    await queue.save();
-
-    res.json(queue);
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    console.error("LEAVE ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -249,7 +244,8 @@ router.delete('/:id', async (req, res) => {
 
     res.json({ message: 'Queue deleted successfully' });
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    console.error("DELETE ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -271,7 +267,8 @@ router.post('/:id/pause', async (req, res) => {
       isPaused: queue.isPaused
     });
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    console.error("PAUSE ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
