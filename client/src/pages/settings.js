@@ -8,7 +8,7 @@ function Settings() {
 
   const [form, setForm] = useState({
     name: "",
-    capacity: "",
+    maxCapacity: "",
     serviceRate: "",
   });
 
@@ -20,12 +20,13 @@ function Settings() {
         );
 
         setForm({
-          name: res.data.name,
-          capacity: res.data.maxCapacity,
-          serviceRate: res.data.serviceRate,
+          name: res.data.name || "",
+          maxCapacity: res.data.maxCapacity || "",
+          serviceRate: res.data.serviceRate || "",
         });
+
       } catch (err) {
-        console.error(err);
+        console.error("FETCH ERROR:", err.response?.data || err.message);
       }
     };
 
@@ -47,16 +48,17 @@ function Settings() {
         `http://localhost:5000/api/queue/${id}`,
         {
           name: form.name,
-          maxCapacity: form.capacity,
-          serviceRate: form.serviceRate,
+          maxCapacity: Number(form.maxCapacity),
+          serviceRate: Number(form.serviceRate),
         }
       );
 
-      alert("Changes saved");
-
+      alert("Changes saved successfully");
       navigate(`/queue/${id}`);
+
     } catch (err) {
-      console.error(err);
+      console.error("UPDATE ERROR:", err.response?.data || err.message);
+      alert("Failed to update queue");
     }
   };
 
@@ -75,8 +77,8 @@ function Settings() {
           />
 
           <input
-            name="capacity"
-            value={form.capacity}
+            name="maxCapacity"
+            value={form.maxCapacity}
             onChange={handleChange}
             placeholder="Max Capacity"
             style={input}

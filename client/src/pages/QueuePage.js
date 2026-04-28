@@ -14,40 +14,56 @@ function QueuePage() {
       );
       setQueue(res.data.queue || res.data);
     } catch (err) {
-      console.error(err);
+      console.error("FETCH ERROR:", err);
     }
   };
 
+  // ✅ FIXED
   const addPerson = async () => {
-    await axios.post(
-      `http://localhost:5000/api/queue/${queueId}/join`
-    );
-    fetchQueue();
+    try {
+      await axios.post(
+        `http://localhost:5000/api/queueOps/${queueId}/add`
+      );
+      fetchQueue();
+    } catch (err) {
+      console.log("ADD ERROR:", err.response?.data || err.message);
+    }
   };
 
+  // ✅ FIXED
   const serveNext = async () => {
-    await axios.post(
-      `http://localhost:5000/api/queue/${queueId}/leave`
-    );
-    fetchQueue();
+    try {
+      await axios.post(
+        `http://localhost:5000/api/queueOps/${queueId}/serve`
+      );
+      fetchQueue();
+    } catch (err) {
+      console.log("SERVE ERROR:", err.response?.data || err.message);
+    }
   };
 
+  // ✅ FIXED
   const resetQueue = async () => {
     try {
       const res = await axios.post(
-        `http://localhost:5000/api/queue/${queueId}/reset`
+        `http://localhost:5000/api/queueOps/${queueId}/reset`
       );
-      setQueue(res.data);
+      setQueue(res.data.queue || res.data);
     } catch (err) {
-      console.error(err);
+      console.log("RESET ERROR:", err.response?.data || err.message);
     }
   };
 
+  // ✅ FIXED
   const togglePause = async () => {
-    await axios.post(
-      `http://localhost:5000/api/queue/${queueId}/pause`
-    );
-    fetchQueue();
+    try {
+      await axios.post(
+        `http://localhost:5000/api/queueOps/${queueId}/pause`
+      );
+      fetchQueue();
+    } catch (err) {
+      console.log("PAUSE ERROR:", err.response?.data || err.message);
+    }
   };
 
   useEffect(() => {
@@ -166,6 +182,7 @@ function QueuePage() {
   );
 }
 
+// styles unchanged
 const page = {
   minHeight: "100vh",
   background: "linear-gradient(135deg, #ece6ff, #ffd9ea)",

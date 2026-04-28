@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from "react";
 import QueueChart from "../components/QueueChart";
-import "./History.css";
 import Heatmap from "../components/Heatmap";
+import "./History.css";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 const History = () => {
   const navigate = useNavigate();
 
+  const [filter, setFilter] = useState("7");
   const [history, setHistory] = useState([]);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [selectedDate, setSelectedDate] = useState(null);
 
   useEffect(() => {
@@ -21,25 +24,27 @@ const History = () => {
           return;
         }
 
-        console.log("USER ID:", user._id);
-
-        // ✅ FIXED API
         const res = await axios.get(
           `http://localhost:5000/api/history/user/${user._id}`
         );
 
-        console.log("HISTORY RESPONSE:", res.data);
-
-        const formatted = res.data.map(item => ({
-          date: item.createdAt.split("T")[0],
+        const formatted = (res.data || []).map(item => ({
+          date: item.createdAt?.split("T")[0],
           length: item.queueLength || 0,
           waitTime: item.waitTime || 0
         }));
 
+        const end = new Date();
+        const start = new Date();
+        start.setDate(end.getDate() - 6);
+
+        setStartDate(start.toISOString().split("T")[0]);
+        setEndDate(end.toISOString().split("T")[0]);
+
         setHistory(formatted);
 
       } catch (err) {
-        console.log("ERROR:", err.response?.data || err.message);
+        console.log(err);
         setHistory([]);
       }
     };
@@ -47,40 +52,54 @@ const History = () => {
     fetchHistory();
   }, [navigate]);
 
+  const getFilteredData = () => {
+    let temp = [...history];
+
+    if (filter) {
+      if (filter === "7") return temp.slice(-7);
+      if (filter === "30") return temp.slice(-30);
+
+      if (filter === "YEAR") {
+        const year = new Date().getFullYear();
+        return temp.filter(i => new Date(i.date).getFullYear() === year);
+      }
+
+      if (filter === "ALL") return temp;
+    }
+
+    if (!filter && startDate && endDate) {
+      return temp.filter(i => {
+        const d = new Date(i.date);
+        return d >= new Date(startDate) && d <= new Date(endDate);
+      });
+    }
+
+    return temp;
+  };
+
+  const filteredData = getFilteredData();
+
   const peak = history.length ? Math.max(...history.map(h => h.length)) : 0;
 
   const avgWait = history.length
-    ? (
-        history.reduce((sum, h) => sum + h.waitTime, 0) /
-        history.length
-      ).toFixed(1)
+    ? (history.reduce((s, h) => s + h.waitTime, 0) / history.length).toFixed(1)
     : 0;
 
   return (
     <div className="history-container fade-in">
 
+      {/* HEADER */}
       <div style={{ marginBottom: "20px" }}>
-        <button
-          onClick={() => navigate("/dashboard")}
-          style={{
-            padding: "8px 14px",
-            background: "#6c63ff",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            marginBottom: "10px"
-          }}
-        >
-          ← Back to Dashboard
+        <button className="back-btn" onClick={() => navigate("/dashboard")}>
+          ← Back
         </button>
-
         <h1>Queue History Dashboard</h1>
       </div>
 
+      {/* STATS */}
       <div className="stats">
         <div className="card glass-card">
-          <h3>🔥 Peak Queue</h3>
+          <h3>🔥 Peak</h3>
           <p>{peak}</p>
         </div>
 
@@ -95,23 +114,75 @@ const History = () => {
         </div>
       </div>
 
+      {/* ✅ FILTERS MOVED HERE */}
+      <div className="filters">
+
+        <div className="left-filters">
+          <button className={filter === "7" ? "active" : ""} onClick={() => setFilter("7")}>
+            Last 7 Days
+          </button>
+
+          <button className={filter === "30" ? "active" : ""} onClick={() => setFilter("30")}>
+            Last 30 Days
+          </button>
+
+          <button className={filter === "YEAR" ? "active" : ""} onClick={() => setFilter("YEAR")}>
+            Current Year
+          </button>
+
+          <button className={filter === "ALL" ? "active" : ""} onClick={() => setFilter("ALL")}>
+            All
+          </button>
+        </div>
+
+        <div className="right-filters">
+
+          <div className="date-box">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                setFilter("");
+              }}
+            />
+          </div>
+
+          <span className="date-separator">→</span>
+
+          <div className="date-box">
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => {
+                setEndDate(e.target.value);
+                setFilter("");
+              }}
+            />
+          </div>
+
+        </div>
+
+      </div>
+
       {history.length === 0 ? (
-        <div style={{ marginTop: "40px", textAlign: "center" }}>
-          <h2>No history data available</h2>
-          <p>Start joining queues to see analytics here.</p>
+        <div style={{ textAlign: "center", marginTop: "40px" }}>
+          No history data available
         </div>
       ) : (
         <>
-          <QueueChart data={history} selectedDate={selectedDate} />
+          {/* CHARTS */}
+          <QueueChart data={filteredData} selectedDate={selectedDate} />
 
           <Heatmap
             data={history}
-            onSelectDate={(date) => setSelectedDate(date)}
+            onSelectDate={setSelectedDate}
             selectedDate={selectedDate}
           />
 
+          {/* TABLE */}
           <div className="table-box">
-            <h2>History Table</h2>
+            <h2>Queue Activity</h2>
 
             <table className="custom-table">
               <thead>
@@ -123,7 +194,7 @@ const History = () => {
               </thead>
 
               <tbody>
-                {history.map((item, index) => (
+                {filteredData.map((item, index) => (
                   <tr key={index}>
                     <td>{item.date}</td>
                     <td>{item.length}</td>
@@ -132,6 +203,7 @@ const History = () => {
                 ))}
               </tbody>
             </table>
+
           </div>
         </>
       )}
